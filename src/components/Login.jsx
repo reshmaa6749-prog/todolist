@@ -1,0 +1,189 @@
+import { useState } from "react";
+
+const LOGIN_URL =
+  "http://localhost:5000/api/login";
+
+const GOOGLE_LOGIN_URL =
+  "http://localhost:5000/auth/google";
+
+
+function Login({
+  onLogin,
+  onShowRegister
+}) {
+
+  const [email, setEmail] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
+
+
+  // =================================================
+  // NORMAL LOGIN
+  // =================================================
+
+  async function handleLogin(e) {
+
+    e.preventDefault();
+
+    setError("");
+
+
+    try {
+
+      const res =
+        await fetch(
+          LOGIN_URL,
+          {
+
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              email: email,
+              password: password
+            })
+
+          }
+        );
+
+
+      const data =
+        await res.json();
+
+
+      if (!res.ok) {
+
+        setError(
+          data.error ||
+          "Login failed"
+        );
+
+        return;
+
+      }
+
+
+      // Send login data to App
+
+      onLogin(data);
+
+
+    } catch (err) {
+
+      console.error(err);
+
+      setError(
+        "Unable to connect to server"
+      );
+
+    }
+
+  }
+
+
+  // =================================================
+  // GOOGLE LOGIN
+  // =================================================
+
+  function handleGoogleLogin() {
+
+    window.location.href =
+      GOOGLE_LOGIN_URL;
+
+  }
+
+
+  return (
+
+    <div className="auth-container">
+
+      <h2>Login</h2>
+
+
+      <form
+        onSubmit={handleLogin}
+      >
+
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
+        />
+
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) =>
+            setPassword(e.target.value)
+          }
+        />
+
+
+        <button
+          type="submit"
+        >
+          Login
+        </button>
+
+      </form>
+
+
+      {error && (
+
+        <p className="error">
+          {error}
+        </p>
+
+      )}
+
+
+      <div className="divider">
+
+        <span>OR</span>
+
+      </div>
+
+
+      <button
+        type="button"
+        className="google-btn"
+        onClick={handleGoogleLogin}
+      >
+        Continue with Google
+      </button>
+
+
+      <p>
+
+        Don't have an account?
+
+        <button
+          type="button"
+          onClick={onShowRegister}
+        >
+          Register
+        </button>
+
+      </p>
+
+    </div>
+
+  );
+}
+
+
+export default Login;
