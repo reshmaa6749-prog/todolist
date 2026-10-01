@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const REGISTER_URL = "http://localhost:5000/api/register";
+const REGISTER_URL = "https://todolist-r9lu.onrender.com/api/register"
 
 const GOOGLE_LOGIN_URL = "http://localhost:5000/auth/google";
 
