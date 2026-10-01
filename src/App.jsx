@@ -6,7 +6,7 @@ import TodoContainer from "./components/TodoContainer";
 import Login from "./components/Login";
 import Register from "./components/Register";
 
-const API_URL = "http://localhost:5000/api/todos";
+const API_URL = "https://todolist-r9lu.onrender.com";
 
 function App() {
   // =================================================

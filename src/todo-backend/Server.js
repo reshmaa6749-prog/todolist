@@ -869,8 +869,10 @@ const PORT = process.env.PORT || 5000;
 // =====================================================
 
 // Allows React frontend to communicate with backend
-app.use(cors());
-
+app.use(cors({
+  origin: ['https://your-infinityfree-domain.infinityfreeapp.com', 'http://localhost:5173'],
+  credentials: true
+}));
 // Converts JSON request body into JavaScript object
 app.use(express.json());
 
