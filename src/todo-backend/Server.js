@@ -42,10 +42,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// Handle preflight requests
-app.options("*", cors());
-
 // Converts JSON request body into JavaScript object
 app.use(express.json());
 
