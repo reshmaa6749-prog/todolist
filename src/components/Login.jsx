@@ -4,7 +4,7 @@ const LOGIN_URL =
  "https://todolist-r9lu.onrender.com/api/login";
 
 const GOOGLE_LOGIN_URL =
-  "http://localhost:5000/auth/google";
+  "https://todolist-r9lu.onrender.com/api/auth/google";
 
 
 function Login({
