@@ -45,6 +45,12 @@ app.use(
 app.use(express.json());
 
 // =====================================================
+// SILENCE FAVICON 404
+// =====================================================
+
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+// =====================================================
 // ENVIRONMENT VARIABLES WITH PRODUCTION FALLBACKS
 // =====================================================
 
@@ -254,6 +260,7 @@ app.get("/auth/google", (req, res) => {
       access_type: "offline",
       scope: ["openid", "email", "profile"],
       state: state,
+      prompt: "select_account",
       include_granted_scopes: true,
     });
 
@@ -408,6 +415,8 @@ const HOST = "0.0.0.0";
 app.listen(PORT, HOST, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
 // const express = require("express");
 // const cors = require("cors");
 // const mongoose = require("mongoose");
