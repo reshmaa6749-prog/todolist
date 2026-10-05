@@ -329,8 +329,8 @@ app.get("/auth/google/callback", async (req, res) => {
 
     const token = createJWT(user);
 
-    // Redirect with query parameter to work with InfinityFree security filters
-    res.redirect(`${FRONTEND_URL}/index.html?token=${encodeURIComponent(token)}`);
+    // Redirect to root domain without /index.html
+    res.redirect(`${FRONTEND_URL}/?token=${encodeURIComponent(token)}`);
   } catch (err) {
     console.error("Google OAuth callback error:", err);
     res.redirect(`${FRONTEND_URL}/?oauthError=Google%20login%20failed`);
