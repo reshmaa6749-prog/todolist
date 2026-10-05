@@ -216,7 +216,6 @@ function Login({ onLogin, onShowRegister }) {
         return;
       }
 
-      // Sends { token, user: { id, name, email, role } } to App.jsx
       onLogin(data);
     } catch (err) {
       console.error(err);

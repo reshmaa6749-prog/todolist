@@ -330,26 +330,36 @@ import InputContainer from "./components/InputContainer";
 import TodoContainer from "./components/TodoContainer";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import AdminDashboard from "./components/AdminDashboard";
 
 const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
 
 function App() {
+  // =================================================
+  // TODO STATES & FILTER
+  // =================================================
   const [inputVal, setInputVal] = useState("");
   const [todos, setTodos] = useState([]);
   const [filter, setFilter] = useState("all");
 
+  // =================================================
+  // AUTH & NAVIGATION STATES
+  // =================================================
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [showRegister, setShowRegister] = useState(false);
-  const [view, setView] = useState("todos"); // 'todos' | 'admin'
+  const [activeTab, setActiveTab] = useState("todos"); // 'todos' | 'admin'
 
-  // GOOGLE OAUTH REDIRECT & TOKEN DECODING
+  // =================================================
+  // HANDLE GOOGLE OAUTH REDIRECT & TOKEN DECODING
+  // =================================================
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
+
     const googleToken = urlParams.get("token") || hashParams.get("token");
 
     if (googleToken) {
@@ -376,13 +386,20 @@ function App() {
         setToken(googleToken);
         setUser(googleUser);
 
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
       } catch (err) {
         console.error("Google token processing error:", err);
       }
     }
   }, []);
 
+  // =================================================
+  // NORMAL LOGIN HANDLER
+  // =================================================
   function handleLogin(data) {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
@@ -390,29 +407,42 @@ function App() {
     setUser(data.user);
   }
 
+  // =================================================
+  // LOGOUT HANDLER
+  // =================================================
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
     setTodos([]);
-    setView("todos");
+    setActiveTab("todos");
   }
 
+  // =================================================
+  // FETCH TODOS
+  // =================================================
   useEffect(() => {
     if (!token) return;
 
     fetch(API_URL, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load todos");
+        if (!res.ok) {
+          throw new Error("Failed to load todos");
+        }
         return res.json();
       })
       .then((data) => setTodos(data))
       .catch((err) => console.error("Error loading todos:", err));
   }, [token]);
 
+  // =================================================
+  // TODO CRUD ACTIONS
+  // =================================================
   function writeTodo(e) {
     setInputVal(e.target.value);
   }
@@ -431,7 +461,11 @@ function App() {
       });
 
       const newTodo = await res.json();
-      if (!res.ok) return console.error(newTodo.error);
+
+      if (!res.ok) {
+        console.error(newTodo.error);
+        return;
+      }
 
       setTodos((prev) => [...prev, newTodo]);
       setInputVal("");
@@ -452,7 +486,11 @@ function App() {
       });
 
       const updatedTodo = await res.json();
-      if (!res.ok) return console.error(updatedTodo.error);
+
+      if (!res.ok) {
+        console.error(updatedTodo.error);
+        return;
+      }
 
       setTodos((prev) =>
         prev.map((todo) => (todo.id === id ? updatedTodo : todo))
@@ -466,11 +504,17 @@ function App() {
     try {
       const res = await fetch(`${API_URL}/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const data = await res.json();
-      if (!res.ok) return console.error(data.error);
+
+      if (!res.ok) {
+        console.error(data.error);
+        return;
+      }
 
       setTodos((prev) => prev.filter((todo) => todo.id !== id));
     } catch (err) {
@@ -478,6 +522,9 @@ function App() {
     }
   }
 
+  // =================================================
+  // CALCULATED METRICS
+  // =================================================
   const totalTasks = todos.length;
   const completedTasks = todos.filter((t) => t.completed).length;
   const pendingTasks = totalTasks - completedTasks;
@@ -490,6 +537,9 @@ function App() {
     return true;
   });
 
+  // =================================================
+  // AUTH VIEWS (LOGIN / REGISTER)
+  // =================================================
   if (!token) {
     if (showRegister) {
       return <Register onShowLogin={() => setShowRegister(false)} />;
@@ -502,8 +552,12 @@ function App() {
     );
   }
 
+  // =================================================
+  // MAIN VIEW
+  // =================================================
   return (
     <main className="app-card">
+      {/* APP HEADER */}
       <header className="app-header">
         <div className="brand-logo">
           <div className="check-icon">✓</div>
@@ -518,19 +572,25 @@ function App() {
             <div className="user-info">
               <span className="user-name">
                 {user?.name || "User"}{" "}
-                <span className="role-tag">({user?.role || "user"})</span>
+                <strong className={`role-badge ${user?.role || "user"}`}>
+                  [{user?.role || "user"}]
+                </strong>
               </span>
-              <span className="user-email">{user?.email || "user@gmail.com"}</span>
+              <span className="user-email">
+                {user?.email || "user@gmail.com"}
+              </span>
             </div>
           </div>
 
-          {/* ADMIN-ONLY NAVIGATION */}
+          {/* ADMIN TOGGLE BUTTON - ONLY VISIBLE TO ADMINS */}
           {user?.role === "admin" && (
             <button
               className="admin-toggle-btn"
-              onClick={() => setView(view === "todos" ? "admin" : "todos")}
+              onClick={() =>
+                setActiveTab(activeTab === "todos" ? "admin" : "todos")
+              }
             >
-              {view === "todos" ? "Admin Panel" : "My Todos"}
+              {activeTab === "todos" ? "Admin Panel" : "My Tasks"}
             </button>
           )}
 
@@ -540,15 +600,12 @@ function App() {
         </div>
       </header>
 
-      {/* RENDER ADMIN VIEW OR STANDARD TODO VIEW */}
-      {view === "admin" && user?.role === "admin" ? (
-        <section className="admin-section">
-          <h2>Admin Management Panel</h2>
-          <p>Manage system users and permissions.</p>
-          {/* Include <AdminDashboard token={token} /> here */}
-        </section>
+      {/* RENDER ADMIN DASHBOARD IF ACTIVE TAB IS ADMIN */}
+      {activeTab === "admin" && user?.role === "admin" ? (
+        <AdminDashboard token={token} />
       ) : (
         <>
+          {/* DASHBOARD CARDS */}
           <section className="stats-grid">
             <div className="stat-card">
               <span className="stat-label">TOTAL TASKS</span>
@@ -564,6 +621,7 @@ function App() {
             </div>
           </section>
 
+          {/* PROGRESS BAR */}
           <section className="progress-card">
             <div className="progress-header">
               <span className="stat-label">PROGRESS</span>
@@ -577,12 +635,14 @@ function App() {
             </div>
           </section>
 
+          {/* INPUT CONTAINER */}
           <InputContainer
             inputVal={inputVal}
             writeTodo={writeTodo}
             addTodo={addTodo}
           />
 
+          {/* FILTER BUTTONS */}
           <div className="filter-buttons">
             <button
               className={`filter-btn ${filter === "all" ? "active" : ""}`}
@@ -597,13 +657,16 @@ function App() {
               Active ({pendingTasks})
             </button>
             <button
-              className={`filter-btn ${filter === "completed" ? "active" : ""}`}
+              className={`filter-btn ${
+                filter === "completed" ? "active" : ""
+              }`}
               onClick={() => setFilter("completed")}
             >
               Completed ({completedTasks})
             </button>
           </div>
 
+          {/* TODO LIST */}
           <TodoContainer
             todos={filteredTodos}
             updateTodo={updateTodo}

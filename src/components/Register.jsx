@@ -224,14 +224,18 @@ function Register({ onShowLogin }) {
           required
         />
 
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          className="role-select"
-        >
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-        </select>
+        <div className="role-field">
+          <label htmlFor="role-select">Register As:</label>
+          <select
+            id="role-select"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            className="role-dropdown"
+          >
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
 
         <button type="submit">Register</button>
       </form>
