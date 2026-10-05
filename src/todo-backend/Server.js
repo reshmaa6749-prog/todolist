@@ -95,9 +95,6 @@ const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CALLBACK_URL
 );
 
-// Stores OAuth state tokens
-const oauthStates = new Map();
-
 // =====================================================
 // SCHEMAS & MODELS
 // =====================================================
@@ -251,10 +248,11 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/auth/google", (req, res) => {
   try {
-    const state = crypto.randomBytes(32).toString("hex");
-    oauthStates.set(state, Date.now());
-
-    setTimeout(() => oauthStates.delete(state), 10 * 60 * 1000);
+    // Encodes timestamp and random bytes into state to avoid server RAM dependency
+    const timestamp = Date.now();
+    const randomHex = crypto.randomBytes(16).toString("hex");
+    const statePayload = `${timestamp}:${randomHex}`;
+    const state = Buffer.from(statePayload).toString("base64url");
 
     const authorizationUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
@@ -279,11 +277,22 @@ app.get("/auth/google/callback", async (req, res) => {
       return res.redirect(`${FRONTEND_URL}/?oauthError=Google%20login%20cancelled`);
     }
 
-    if (!state || !oauthStates.has(state)) {
-      return res.status(400).send("Invalid OAuth state");
+    if (!state) {
+      return res.status(400).send("OAuth state missing");
     }
 
-    oauthStates.delete(state);
+    // Verify state timestamp expiration (10 minute limit)
+    try {
+      const decodedState = Buffer.from(state, "base64url").toString("utf-8");
+      const [timestamp] = decodedState.split(":");
+      const age = Date.now() - parseInt(timestamp, 10);
+
+      if (isNaN(age) || age > 10 * 60 * 1000) {
+        return res.status(400).send("OAuth state expired. Please try logging in again.");
+      }
+    } catch (e) {
+      return res.status(400).send("Invalid OAuth state format");
+    }
 
     if (!code) {
       return res.status(400).send("Google authorization code missing");
@@ -319,7 +328,9 @@ app.get("/auth/google/callback", async (req, res) => {
     await user.save();
 
     const token = createJWT(user);
-    res.redirect(`${FRONTEND_URL}/#token=${encodeURIComponent(token)}`);
+
+    // Redirect with query parameter to work with InfinityFree security filters
+    res.redirect(`${FRONTEND_URL}/index.html?token=${encodeURIComponent(token)}`);
   } catch (err) {
     console.error("Google OAuth callback error:", err);
     res.redirect(`${FRONTEND_URL}/?oauthError=Google%20login%20failed`);
@@ -415,7 +426,6 @@ const HOST = "0.0.0.0";
 app.listen(PORT, HOST, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
 
 // const express = require("express");
 // const cors = require("cors");

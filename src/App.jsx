@@ -241,6 +241,7 @@
 // }
 // export default App;
 
+
 import { useState, useEffect } from "react";
 import "./App.css";
 
@@ -272,11 +273,10 @@ function App() {
   // HANDLE GOOGLE OAUTH REDIRECT & TOKEN DECODING
   // =================================================
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
 
-    const params = new URLSearchParams(hash.substring(1));
-    const googleToken = params.get("token");
+    const googleToken = urlParams.get("token") || hashParams.get("token");
 
     if (googleToken) {
       try {
