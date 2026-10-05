@@ -239,8 +239,8 @@
 //     </main>
 //   );
 // }
-
 // export default App;
+
 import { useState, useEffect } from "react";
 import "./App.css";
 
@@ -249,7 +249,6 @@ import TodoContainer from "./components/TodoContainer";
 import Login from "./components/Login";
 import Register from "./components/Register";
 
-// Added /api/todos to point directly to your backend CRUD endpoints
 const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
 
 function App() {
@@ -262,14 +261,15 @@ function App() {
   // =================================================
   // AUTH STATES
   // =================================================
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user"))
-  );
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [showRegister, setShowRegister] = useState(false);
 
   // =================================================
-  // HANDLE GOOGLE CALLBACK
+  // HANDLE GOOGLE OAUTH REDIRECT & TOKEN DECODING
   // =================================================
   useEffect(() => {
     const hash = window.location.hash;
@@ -313,7 +313,7 @@ function App() {
   }, []);
 
   // =================================================
-  // NORMAL LOGIN
+  // NORMAL LOGIN HANDLER
   // =================================================
   function handleLogin(data) {
     localStorage.setItem("token", data.token);
@@ -323,7 +323,7 @@ function App() {
   }
 
   // =================================================
-  // LOGOUT
+  // LOGOUT HANDLER
   // =================================================
   function logout() {
     localStorage.removeItem("token");
@@ -355,7 +355,7 @@ function App() {
   }, [token]);
 
   // =================================================
-  // INPUT & ACTIONS
+  // TODO CRUD ACTIONS
   // =================================================
   function writeTodo(e) {
     setInputVal(e.target.value);
@@ -437,7 +437,7 @@ function App() {
   }
 
   // =================================================
-  // SHOW LOGIN / REGISTER
+  // AUTH VIEWS (LOGIN / REGISTER)
   // =================================================
   if (!token) {
     if (showRegister) {
@@ -452,7 +452,7 @@ function App() {
   }
 
   // =================================================
-  // TODO PAGE
+  // TODO VIEW
   // =================================================
   return (
     <main className="todo-app">

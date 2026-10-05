@@ -12,7 +12,6 @@ require("dotenv").config();
 // =====================================================
 
 const app = express();
-
 const PORT = process.env.PORT || 5000;
 
 // =====================================================
@@ -42,11 +41,11 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-// Converts JSON request body into JavaScript object
+
 app.use(express.json());
 
 // =====================================================
-// ENVIRONMENT VARIABLES
+// ENVIRONMENT VARIABLES WITH PRODUCTION FALLBACKS
 // =====================================================
 
 const MONGO_URI = process.env.MONGO_URI;
@@ -54,15 +53,18 @@ const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
   throw new Error("MONGO_URI is not configured");
 }
-const JWT_SECRET = process.env.JWT_SECRET;
 
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_jwt_secret_key";
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
-const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
+const GOOGLE_CALLBACK_URL =
+  process.env.GOOGLE_CALLBACK_URL ||
+  "https://todolist-r9lu.onrender.com/auth/google/callback";
 
-const FRONTEND_URL = process.env.FRONTEND_URL;
+const FRONTEND_URL =
+  process.env.FRONTEND_URL ||
+  "https://infinityresh.infinityfreeapp.com";
 
 // =====================================================
 // CONNECT TO MONGODB
@@ -84,83 +86,36 @@ mongoose
 const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
-  GOOGLE_CALLBACK_URL,
+  GOOGLE_CALLBACK_URL
 );
 
-// =====================================================
-// OAUTH STATE STORAGE
-// =====================================================
-
-// Used to temporarily store OAuth state values
+// Stores OAuth state tokens
 const oauthStates = new Map();
 
 // =====================================================
-// USER SCHEMA
+// SCHEMAS & MODELS
 // =====================================================
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      lowercase: true,
-    },
-
-    password: {
-      type: String,
-    },
-
-    googleId: {
-      type: String,
-    },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    password: { type: String },
+    googleId: { type: String },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true }
 );
-
-// =====================================================
-// USER MODEL
-// =====================================================
 
 const User = mongoose.model("User", userSchema);
 
-// =====================================================
-// TODO SCHEMA
-// =====================================================
-
 const todoSchema = new mongoose.Schema(
   {
-    text: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    completed: {
-      type: Boolean,
-      default: false,
-    },
-
-    // Connect Todo with User
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    text: { type: String, required: true, trim: true },
+    completed: { type: Boolean, default: false },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   {
     timestamps: true,
-
-    // Convert MongoDB _id into id
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
@@ -169,54 +124,38 @@ const todoSchema = new mongoose.Schema(
         return ret;
       },
     },
-  },
+  }
 );
-
-// =====================================================
-// TODO MODEL
-// =====================================================
 
 const Todo = mongoose.model("Todo", todoSchema);
 
 // =====================================================
-// FUNCTION TO CREATE JWT
+// JWT HELPERS & MIDDLEWARE
 // =====================================================
 
 function createJWT(user) {
-  const token = jwt.sign(
+  return jwt.sign(
     {
       userId: user._id.toString(),
       name: user.name,
       email: user.email,
     },
     JWT_SECRET,
-    {
-      expiresIn: "1d",
-    },
+    { expiresIn: "1d" }
   );
-
-  return token;
 }
-
-// =====================================================
-// JWT AUTHENTICATION MIDDLEWARE
-// =====================================================
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).json({
-      error: "No token provided",
-    });
+    return res.status(401).json({ error: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({
-      error: "Invalid authorization header",
-    });
+    return res.status(401).json({ error: "Invalid authorization header" });
   }
 
   try {
@@ -224,14 +163,12 @@ function authenticateToken(req, res, next) {
     req.userId = decoded.userId;
     next();
   } catch (err) {
-    return res.status(403).json({
-      error: "Invalid or expired token",
-    });
+    return res.status(403).json({ error: "Invalid or expired token" });
   }
 }
 
 // =====================================================
-// REGISTER
+// AUTH ROUTES
 // =====================================================
 
 app.post("/api/register", async (req, res) => {
@@ -239,31 +176,21 @@ app.post("/api/register", async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({
-        error: "All fields are required",
-      });
+      return res.status(400).json({ error: "All fields are required" });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({
-        error: "Password must be at least 6 characters",
-      });
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-
-    const existingUser = await User.findOne({
-      email: normalizedEmail,
-    });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
-      return res.status(400).json({
-        error: "Email already registered",
-      });
+      return res.status(400).json({ error: "Email already registered" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUser = new User({
       name: name.trim(),
       email: normalizedEmail,
@@ -271,43 +198,26 @@ app.post("/api/register", async (req, res) => {
     });
 
     await newUser.save();
-
-    res.status(201).json({
-      message: "Registration successful",
-    });
+    res.status(201).json({ message: "Registration successful" });
   } catch (err) {
     console.error("Registration error:", err);
-
-    res.status(500).json({
-      error: "Registration failed",
-    });
+    res.status(500).json({ error: "Registration failed" });
   }
 });
-
-// =====================================================
-// LOGIN
-// =====================================================
 
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({
-        error: "Email and password are required",
-      });
+      return res.status(400).json({ error: "Email and password are required" });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-
-    const user = await User.findOne({
-      email: normalizedEmail,
-    });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-      return res.status(401).json({
-        error: "Invalid email or password",
-      });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     if (!user.password) {
@@ -319,52 +229,30 @@ app.post("/api/login", async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
-      return res.status(401).json({
-        error: "Invalid email or password",
-      });
+      return res.status(401).json({ error: "Invalid email or password" });
     }
 
     const token = createJWT(user);
-
     res.json({
       token: token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+      user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (err) {
     console.error("Login error:", err);
-
-    res.status(500).json({
-      error: "Login failed",
-    });
+    res.status(500).json({ error: "Login failed" });
   }
 });
-
-// =====================================================
-// GOOGLE LOGIN - START
-// =====================================================
 
 app.get("/auth/google", (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString("hex");
-
     oauthStates.set(state, Date.now());
 
-    setTimeout(
-      () => {
-        oauthStates.delete(state);
-      },
-      10 * 60 * 1000,
-    );
-
-    const scopes = ["openid", "email", "profile"];
+    setTimeout(() => oauthStates.delete(state), 10 * 60 * 1000);
 
     const authorizationUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
-      scope: scopes,
+      scope: ["openid", "email", "profile"],
       state: state,
       include_granted_scopes: true,
     });
@@ -372,23 +260,16 @@ app.get("/auth/google", (req, res) => {
     res.redirect(authorizationUrl);
   } catch (err) {
     console.error("Google OAuth error:", err);
-
     res.status(500).send("Unable to start Google login");
   }
 });
-
-// =====================================================
-// GOOGLE LOGIN - CALLBACK
-// =====================================================
 
 app.get("/auth/google/callback", async (req, res) => {
   try {
     const { code, state, error } = req.query;
 
     if (error) {
-      return res.redirect(
-        `${FRONTEND_URL}/?oauthError=Google%20login%20cancelled`,
-      );
+      return res.redirect(`${FRONTEND_URL}/?oauthError=Google%20login%20cancelled`);
     }
 
     if (!state || !oauthStates.has(state)) {
@@ -402,7 +283,6 @@ app.get("/auth/google/callback", async (req, res) => {
     }
 
     const { tokens } = await oauth2Client.getToken(code);
-
     const ticket = await oauth2Client.verifyIdToken({
       idToken: tokens.id_token,
       audience: GOOGLE_CLIENT_ID,
@@ -413,14 +293,10 @@ app.get("/auth/google/callback", async (req, res) => {
     const googleEmail = googlePayload.email.toLowerCase().trim();
     const googleName = googlePayload.name || "Google User";
 
-    let user = await User.findOne({
-      googleId: googleId,
-    });
+    let user = await User.findOne({ googleId: googleId });
 
     if (!user) {
-      user = await User.findOne({
-        email: googleEmail,
-      });
+      user = await User.findOne({ email: googleEmail });
     }
 
     if (!user) {
@@ -429,93 +305,61 @@ app.get("/auth/google/callback", async (req, res) => {
         email: googleEmail,
         googleId: googleId,
       });
-    } else {
-      if (!user.googleId) {
-        user.googleId = googleId;
-      }
+    } else if (!user.googleId) {
+      user.googleId = googleId;
     }
 
     await user.save();
 
     const token = createJWT(user);
-
     res.redirect(`${FRONTEND_URL}/#token=${encodeURIComponent(token)}`);
   } catch (err) {
     console.error("Google OAuth callback error:", err);
-
     res.redirect(`${FRONTEND_URL}/?oauthError=Google%20login%20failed`);
   }
 });
 
 // =====================================================
-// GET TODOS
+// TODO ROUTES
 // =====================================================
 
 app.get("/api/todos", authenticateToken, async (req, res) => {
   try {
-    const todos = await Todo.find({
-      userId: req.userId,
-    });
-
+    const todos = await Todo.find({ userId: req.userId });
     res.json(todos);
   } catch (err) {
     console.error("Error getting todos:", err);
-
-    res.status(500).json({
-      error: "Failed to fetch todos",
-    });
+    res.status(500).json({ error: "Failed to fetch todos" });
   }
 });
-
-// =====================================================
-// ADD TODO
-// =====================================================
 
 app.post("/api/todos", authenticateToken, async (req, res) => {
   try {
     const { text } = req.body;
 
     if (!text || !text.trim()) {
-      return res.status(400).json({
-        error: "Todo text cannot be empty",
-      });
+      return res.status(400).json({ error: "Todo text cannot be empty" });
     }
 
-    const newTodo = new Todo({
-      text: text.trim(),
-      userId: req.userId,
-    });
-
+    const newTodo = new Todo({ text: text.trim(), userId: req.userId });
     const savedTodo = await newTodo.save();
-
     res.status(201).json(savedTodo);
   } catch (err) {
     console.error("Error creating todo:", err);
-
-    res.status(500).json({
-      error: "Failed to create todo",
-    });
+    res.status(500).json({ error: "Failed to create todo" });
   }
 });
-
-// =====================================================
-// UPDATE TODO
-// =====================================================
 
 app.put("/api/todos/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { text, completed } = req.body;
-
     const updatedData = {};
 
     if (text !== undefined) {
       if (!text.trim()) {
-        return res.status(400).json({
-          error: "Todo text cannot be empty",
-        });
+        return res.status(400).json({ error: "Todo text cannot be empty" });
       }
-
       updatedData.text = text.trim();
     }
 
@@ -524,61 +368,35 @@ app.put("/api/todos/:id", authenticateToken, async (req, res) => {
     }
 
     const updatedTodo = await Todo.findOneAndUpdate(
-      {
-        _id: id,
-        userId: req.userId,
-      },
+      { _id: id, userId: req.userId },
       updatedData,
-      {
-        new: true,
-      },
+      { new: true }
     );
 
     if (!updatedTodo) {
-      return res.status(404).json({
-        error: "Todo not found",
-      });
+      return res.status(404).json({ error: "Todo not found" });
     }
 
     res.json(updatedTodo);
   } catch (err) {
     console.error("Error updating todo:", err);
-
-    res.status(500).json({
-      error: "Failed to update todo",
-    });
+    res.status(500).json({ error: "Failed to update todo" });
   }
 });
-
-// =====================================================
-// DELETE TODO
-// =====================================================
 
 app.delete("/api/todos/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-
-    const deletedTodo = await Todo.findOneAndDelete({
-      _id: id,
-      userId: req.userId,
-    });
+    const deletedTodo = await Todo.findOneAndDelete({ _id: id, userId: req.userId });
 
     if (!deletedTodo) {
-      return res.status(404).json({
-        error: "Todo not found",
-      });
+      return res.status(404).json({ error: "Todo not found" });
     }
 
-    res.json({
-      success: true,
-      id: id,
-    });
+    res.json({ success: true, id: id });
   } catch (err) {
     console.error("Error deleting todo:", err);
-
-    res.status(500).json({
-      error: "Failed to delete todo",
-    });
+    res.status(500).json({ error: "Failed to delete todo" });
   }
 });
 
@@ -587,7 +405,6 @@ app.delete("/api/todos/:id", authenticateToken, async (req, res) => {
 // =====================================================
 
 const HOST = "0.0.0.0";
-
 app.listen(PORT, HOST, () => {
   console.log(`Server running on port ${PORT}`);
 });
