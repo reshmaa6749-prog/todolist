@@ -607,13 +607,14 @@ body {
   padding: 2rem 1rem;
 }
 
-/* Switches background to light grey when login screen is active */
-body:has(.auth-wrapper) {
+/* Switches background to light grey when auth screen (login or register) is active */
+body:has(.auth-wrapper),
+body:has(.auth-container) {
   background-color: #f3f4f6;
 }
 
 /* =========================================
-   LOGIN SCREEN (Light Theme Override)
+   AUTH SCREENS (LOGIN & REGISTER Light Theme)
 ========================================= */
 .auth-wrapper {
   width: 150%;
@@ -625,8 +626,9 @@ body:has(.auth-wrapper) {
   padding: 20px;
 }
 
-.auth-card {
-  width: 100%;
+.auth-card,
+.auth-container {
+  width: 150%;
   max-width: 700px;
   background: #ffffff;
   border-radius: 20px;
@@ -634,9 +636,11 @@ body:has(.auth-wrapper) {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
+  margin: 0 auto;
 }
 
-.auth-title {
+.auth-title,
+.auth-container h2 {
   text-align: center;
   font-size: 32px;
   font-weight: 700;
@@ -644,13 +648,15 @@ body:has(.auth-wrapper) {
   margin-bottom: 28px;
 }
 
-.auth-form {
+.auth-form,
+.auth-container form {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.auth-form input {
+.auth-form input,
+.auth-container input {
   width: 100%;
   padding: 14px 16px;
   background-color: #eef5ff;
@@ -661,17 +667,20 @@ body:has(.auth-wrapper) {
   outline: none;
 }
 
-.auth-form input::placeholder {
+.auth-form input::placeholder,
+.auth-container input::placeholder {
   color: #6b7280;
 }
 
-.auth-form input:focus {
+.auth-form input:focus,
+.auth-container input:focus {
   background-color: #ffffff;
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
-.login-submit-btn {
+.login-submit-btn,
+.auth-container form button {
   width: 100%;
   padding: 14px;
   background-color: #4f46e5;
@@ -685,11 +694,13 @@ body:has(.auth-wrapper) {
   transition: background-color 0.2s ease;
 }
 
-.login-submit-btn:hover {
+.login-submit-btn:hover,
+.auth-container form button:hover {
   background-color: #4338ca;
 }
 
-.auth-divider {
+.auth-divider,
+.divider {
   display: flex;
   align-items: center;
   margin: 24px 0 18px;
@@ -699,18 +710,22 @@ body:has(.auth-wrapper) {
 }
 
 .auth-divider::before,
-.auth-divider::after {
+.auth-divider::after,
+.divider::before,
+.divider::after {
   content: "";
   flex: 1;
   height: 1px;
   background-color: #e5e7eb;
 }
 
-.auth-divider span {
+.auth-divider span,
+.divider span {
   padding: 0 12px;
 }
 
-.google-submit-btn {
+.google-submit-btn,
+.google-btn {
   width: 100%;
   padding: 13px;
   background-color: #ffffff;
@@ -721,20 +736,24 @@ body:has(.auth-wrapper) {
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
+  margin-top: 0;
 }
 
-.google-submit-btn:hover {
+.google-submit-btn:hover,
+.google-btn:hover {
   background-color: #f9fafb;
 }
 
-.auth-footer-text {
+.auth-footer-text,
+.auth-container p {
   text-align: center;
   margin-top: 24px;
   font-size: 14px;
   color: #6b7280;
 }
 
-.auth-footer-text button {
+.auth-footer-text button,
+.auth-container p button {
   background: none;
   border: none;
   color: #4f46e5;
@@ -742,15 +761,26 @@ body:has(.auth-wrapper) {
   font-size: 14px;
   cursor: pointer;
   padding: 0 0 0 4px;
+  margin-left: 0;
 }
 
-.auth-footer-text button:hover {
+.auth-footer-text button:hover,
+.auth-container p button:hover {
   text-decoration: underline;
 }
 
 .error {
   color: #dc2626 !important;
   background: #fee2e2;
+  border-radius: 7px;
+  padding: 10px;
+  margin-top: 15px !important;
+  text-align: center;
+}
+
+.success {
+  color: #15803d !important;
+  background: #dcfce7;
   border-radius: 7px;
   padding: 10px;
   margin-top: 15px !important;
@@ -1154,5 +1184,15 @@ body:has(.auth-wrapper) {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .auth-wrapper {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .auth-card,
+  .auth-container {
+    padding: 25px;
   }
 }

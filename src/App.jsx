@@ -10,10 +10,11 @@
 
 // function App() {
 //   // =================================================
-//   // TODO STATES
+//   // TODO STATES & FILTER
 //   // =================================================
 //   const [inputVal, setInputVal] = useState("");
 //   const [todos, setTodos] = useState([]);
+//   const [filter, setFilter] = useState("all"); // 'all' | 'active' | 'completed'
 
 //   // =================================================
 //   // AUTH STATES
@@ -193,6 +194,21 @@
 //   }
 
 //   // =================================================
+//   // CALCULATED METRICS
+//   // =================================================
+//   const totalTasks = todos.length;
+//   const completedTasks = todos.filter((t) => t.completed).length;
+//   const pendingTasks = totalTasks - completedTasks;
+//   const progressPercent =
+//     totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+//   const filteredTodos = todos.filter((todo) => {
+//     if (filter === "active") return !todo.completed;
+//     if (filter === "completed") return todo.completed;
+//     return true;
+//   });
+
+//   // =================================================
 //   // AUTH VIEWS (LOGIN / REGISTER)
 //   // =================================================
 //   if (!token) {
@@ -211,29 +227,92 @@
 //   // TODO VIEW
 //   // =================================================
 //   return (
-//     <main className="todo-app">
-//       <header className="top-bar">
-//         <h1 className="app-title">To Do List</h1>
-//         <div className="user-profile">
-//           <div className="user-header">
-//             <span className="welcome-text">
-//               Welcome, <strong>{user?.name || "User"}</strong>
-//             </span>
-//             <button className="logout-btn" onClick={logout}>
-//               Logout
-//             </button>
+//     <main className="app-card">
+//       {/* APP HEADER */}
+//       <header className="app-header">
+//         <div className="brand-logo">
+//           <div className="check-icon">✓</div>
+//           <h1 className="app-title">TaskMaster Pro</h1>
+//         </div>
+
+//         <div className="user-section">
+//           <div className="user-badge">
+//             <div className="user-avatar">
+//               {(user?.name || user?.email || "U")[0].toUpperCase()}
+//             </div>
+//             <div className="user-info">
+//               <span className="user-name">{user?.name || "User"}</span>
+//               <span className="user-email">{user?.email || "user@gmail.com"}</span>
+//             </div>
 //           </div>
+//           <button className="logout-btn" onClick={logout}>
+//             Logout
+//           </button>
 //         </div>
 //       </header>
 
+//       {/* DASHBOARD CARDS */}
+//       <section className="stats-grid">
+//         <div className="stat-card">
+//           <span className="stat-label">TOTAL TASKS</span>
+//           <span className="stat-value">{totalTasks}</span>
+//         </div>
+//         <div className="stat-card">
+//           <span className="stat-label">PENDING</span>
+//           <span className="stat-value warning">{pendingTasks}</span>
+//         </div>
+//         <div className="stat-card">
+//           <span className="stat-label">COMPLETED</span>
+//           <span className="stat-value success">{completedTasks}</span>
+//         </div>
+//       </section>
+
+//       {/* PROGRESS BAR */}
+//       <section className="progress-card">
+//         <div className="progress-header">
+//           <span className="stat-label">PROGRESS</span>
+//           <span className="progress-percentage">{progressPercent}%</span>
+//         </div>
+//         <div className="progress-track">
+//           <div
+//             className="progress-fill"
+//             style={{ width: `${progressPercent}%` }}
+//           ></div>
+//         </div>
+//       </section>
+
+//       {/* INPUT CONTAINER */}
 //       <InputContainer
 //         inputVal={inputVal}
 //         writeTodo={writeTodo}
 //         addTodo={addTodo}
 //       />
 
+//       {/* FILTER BUTTONS */}
+//       <div className="filter-buttons">
+//         <button
+//           className={`filter-btn ${filter === "all" ? "active" : ""}`}
+//           onClick={() => setFilter("all")}
+//         >
+//           All ({totalTasks})
+//         </button>
+//         <button
+//           className={`filter-btn ${filter === "active" ? "active" : ""}`}
+//           onClick={() => setFilter("active")}
+//         >
+//           Active ({pendingTasks})
+//         </button>
+//         <button
+//           className={`filter-btn ${filter === "completed" ? "active" : ""}`}
+//           onClick={() => setFilter("completed")}
+//         >
+//           Completed ({completedTasks})
+//         </button>
+//       </div>
+
+//       {/* TODO LIST */}
 //       <TodoContainer
-//         todos={todos}
+//         todos={filteredTodos}
 //         updateTodo={updateTodo}
 //         delTodo={delTodo}
 //       />
@@ -255,30 +334,22 @@ import Register from "./components/Register";
 const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
 
 function App() {
-  // =================================================
-  // TODO STATES & FILTER
-  // =================================================
   const [inputVal, setInputVal] = useState("");
   const [todos, setTodos] = useState([]);
-  const [filter, setFilter] = useState("all"); // 'all' | 'active' | 'completed'
+  const [filter, setFilter] = useState("all");
 
-  // =================================================
-  // AUTH STATES
-  // =================================================
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [showRegister, setShowRegister] = useState(false);
+  const [view, setView] = useState("todos"); // 'todos' | 'admin'
 
-  // =================================================
-  // HANDLE GOOGLE OAUTH REDIRECT & TOKEN DECODING
-  // =================================================
+  // GOOGLE OAUTH REDIRECT & TOKEN DECODING
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
-
     const googleToken = urlParams.get("token") || hashParams.get("token");
 
     if (googleToken) {
@@ -296,6 +367,7 @@ function App() {
           id: payload.userId,
           name: payload.name,
           email: payload.email,
+          role: payload.role || "user", // Capture role from token
         };
 
         localStorage.setItem("token", googleToken);
@@ -304,20 +376,13 @@ function App() {
         setToken(googleToken);
         setUser(googleUser);
 
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
+        window.history.replaceState({}, document.title, window.location.pathname);
       } catch (err) {
         console.error("Google token processing error:", err);
       }
     }
   }, []);
 
-  // =================================================
-  // NORMAL LOGIN HANDLER
-  // =================================================
   function handleLogin(data) {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
@@ -325,41 +390,29 @@ function App() {
     setUser(data.user);
   }
 
-  // =================================================
-  // LOGOUT HANDLER
-  // =================================================
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
     setTodos([]);
+    setView("todos");
   }
 
-  // =================================================
-  // FETCH TODOS
-  // =================================================
   useEffect(() => {
     if (!token) return;
 
     fetch(API_URL, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load todos");
-        }
+        if (!res.ok) throw new Error("Failed to load todos");
         return res.json();
       })
       .then((data) => setTodos(data))
       .catch((err) => console.error("Error loading todos:", err));
   }, [token]);
 
-  // =================================================
-  // TODO CRUD ACTIONS
-  // =================================================
   function writeTodo(e) {
     setInputVal(e.target.value);
   }
@@ -378,11 +431,7 @@ function App() {
       });
 
       const newTodo = await res.json();
-
-      if (!res.ok) {
-        console.error(newTodo.error);
-        return;
-      }
+      if (!res.ok) return console.error(newTodo.error);
 
       setTodos((prev) => [...prev, newTodo]);
       setInputVal("");
@@ -403,11 +452,7 @@ function App() {
       });
 
       const updatedTodo = await res.json();
-
-      if (!res.ok) {
-        console.error(updatedTodo.error);
-        return;
-      }
+      if (!res.ok) return console.error(updatedTodo.error);
 
       setTodos((prev) =>
         prev.map((todo) => (todo.id === id ? updatedTodo : todo))
@@ -421,17 +466,11 @@ function App() {
     try {
       const res = await fetch(`${API_URL}/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        console.error(data.error);
-        return;
-      }
+      if (!res.ok) return console.error(data.error);
 
       setTodos((prev) => prev.filter((todo) => todo.id !== id));
     } catch (err) {
@@ -439,9 +478,6 @@ function App() {
     }
   }
 
-  // =================================================
-  // CALCULATED METRICS
-  // =================================================
   const totalTasks = todos.length;
   const completedTasks = todos.filter((t) => t.completed).length;
   const pendingTasks = totalTasks - completedTasks;
@@ -454,9 +490,6 @@ function App() {
     return true;
   });
 
-  // =================================================
-  // AUTH VIEWS (LOGIN / REGISTER)
-  // =================================================
   if (!token) {
     if (showRegister) {
       return <Register onShowLogin={() => setShowRegister(false)} />;
@@ -469,12 +502,8 @@ function App() {
     );
   }
 
-  // =================================================
-  // TODO VIEW
-  // =================================================
   return (
     <main className="app-card">
-      {/* APP HEADER */}
       <header className="app-header">
         <div className="brand-logo">
           <div className="check-icon">✓</div>
@@ -487,81 +516,101 @@ function App() {
               {(user?.name || user?.email || "U")[0].toUpperCase()}
             </div>
             <div className="user-info">
-              <span className="user-name">{user?.name || "User"}</span>
+              <span className="user-name">
+                {user?.name || "User"}{" "}
+                <span className="role-tag">({user?.role || "user"})</span>
+              </span>
               <span className="user-email">{user?.email || "user@gmail.com"}</span>
             </div>
           </div>
+
+          {/* ADMIN-ONLY NAVIGATION */}
+          {user?.role === "admin" && (
+            <button
+              className="admin-toggle-btn"
+              onClick={() => setView(view === "todos" ? "admin" : "todos")}
+            >
+              {view === "todos" ? "Admin Panel" : "My Todos"}
+            </button>
+          )}
+
           <button className="logout-btn" onClick={logout}>
             Logout
           </button>
         </div>
       </header>
 
-      {/* DASHBOARD CARDS */}
-      <section className="stats-grid">
-        <div className="stat-card">
-          <span className="stat-label">TOTAL TASKS</span>
-          <span className="stat-value">{totalTasks}</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-label">PENDING</span>
-          <span className="stat-value warning">{pendingTasks}</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-label">COMPLETED</span>
-          <span className="stat-value success">{completedTasks}</span>
-        </div>
-      </section>
+      {/* RENDER ADMIN VIEW OR STANDARD TODO VIEW */}
+      {view === "admin" && user?.role === "admin" ? (
+        <section className="admin-section">
+          <h2>Admin Management Panel</h2>
+          <p>Manage system users and permissions.</p>
+          {/* Include <AdminDashboard token={token} /> here */}
+        </section>
+      ) : (
+        <>
+          <section className="stats-grid">
+            <div className="stat-card">
+              <span className="stat-label">TOTAL TASKS</span>
+              <span className="stat-value">{totalTasks}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">PENDING</span>
+              <span className="stat-value warning">{pendingTasks}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">COMPLETED</span>
+              <span className="stat-value success">{completedTasks}</span>
+            </div>
+          </section>
 
-      {/* PROGRESS BAR */}
-      <section className="progress-card">
-        <div className="progress-header">
-          <span className="stat-label">PROGRESS</span>
-          <span className="progress-percentage">{progressPercent}%</span>
-        </div>
-        <div className="progress-track">
-          <div
-            className="progress-fill"
-            style={{ width: `${progressPercent}%` }}
-          ></div>
-        </div>
-      </section>
+          <section className="progress-card">
+            <div className="progress-header">
+              <span className="stat-label">PROGRESS</span>
+              <span className="progress-percentage">{progressPercent}%</span>
+            </div>
+            <div className="progress-track">
+              <div
+                className="progress-fill"
+                style={{ width: `${progressPercent}%` }}
+              ></div>
+            </div>
+          </section>
 
-      {/* INPUT CONTAINER */}
-      <InputContainer
-        inputVal={inputVal}
-        writeTodo={writeTodo}
-        addTodo={addTodo}
-      />
+          <InputContainer
+            inputVal={inputVal}
+            writeTodo={writeTodo}
+            addTodo={addTodo}
+          />
 
-      {/* FILTER BUTTONS */}
-      <div className="filter-buttons">
-        <button
-          className={`filter-btn ${filter === "all" ? "active" : ""}`}
-          onClick={() => setFilter("all")}
-        >
-          All ({totalTasks})
-        </button>
-        <button
-          className={`filter-btn ${filter === "active" ? "active" : ""}`}
-          onClick={() => setFilter("active")}
-        >
-          Active ({pendingTasks})
-        </button>
-        <button
-          className={`filter-btn ${filter === "completed" ? "active" : ""}`}
-          onClick={() => setFilter("completed")}
-        >
-          Completed ({completedTasks})
-        </button>
-      </div>
+          <div className="filter-buttons">
+            <button
+              className={`filter-btn ${filter === "all" ? "active" : ""}`}
+              onClick={() => setFilter("all")}
+            >
+              All ({totalTasks})
+            </button>
+            <button
+              className={`filter-btn ${filter === "active" ? "active" : ""}`}
+              onClick={() => setFilter("active")}
+            >
+              Active ({pendingTasks})
+            </button>
+            <button
+              className={`filter-btn ${filter === "completed" ? "active" : ""}`}
+              onClick={() => setFilter("completed")}
+            >
+              Completed ({completedTasks})
+            </button>
+          </div>
 
-      {/* TODO LIST */}
-      <TodoContainer
-        todos={filteredTodos}
-        updateTodo={updateTodo}
-        delTodo={delTodo}
-      />
+          <TodoContainer
+            todos={filteredTodos}
+            updateTodo={updateTodo}
+            delTodo={delTodo}
+          />
+        </>
+      )}
     </main>
   );
 }
