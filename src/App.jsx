@@ -354,6 +354,7 @@
 // }
 
 // export default App;
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./App.css";
@@ -366,7 +367,8 @@ import AdminDashboard from "./components/AdminDashboard";
 
 const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
 
-const easeCustom = [0.16, 1, 0.3, 1];
+// Enterprise Fast Ease Standard
+const fastEase = [0.16, 1, 0.3, 1];
 
 function App() {
   const [inputVal, setInputVal] = useState("");
@@ -379,7 +381,7 @@ function App() {
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [showRegister, setShowRegister] = useState(false);
-  const [activeTab, setActiveTab] = useState("todos"); // 'todos' | 'admin'
+  const [activeTab, setActiveTab] = useState("todos");
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -561,19 +563,13 @@ function App() {
   return (
     <motion.main
       className="app-card"
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: easeCustom }}
+      transition={{ duration: 0.18, ease: fastEase }}
     >
       <header className="app-header">
         <div className="brand-logo">
-          <motion.div
-            className="check-icon"
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            ✓
-          </motion.div>
+          <div className="check-icon">✓</div>
           <h1 className="app-title">TaskMaster Pro</h1>
         </div>
 
@@ -596,26 +592,19 @@ function App() {
           </div>
 
           {user?.role === "admin" && (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.96 }}
+            <button
               className="admin-toggle-btn"
               onClick={() =>
                 setActiveTab(activeTab === "todos" ? "admin" : "todos")
               }
             >
-              {activeTab === "todos" ? "Admin Panel" : "My Tasks"}
-            </motion.button>
+              {activeTab === "todos" ? "Admin" : "Tasks"}
+            </button>
           )}
 
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
-            className="logout-btn"
-            onClick={logout}
-          >
+          <button className="logout-btn" onClick={logout}>
             Logout
-          </motion.button>
+          </button>
         </div>
       </header>
 
@@ -623,20 +612,20 @@ function App() {
         {activeTab === "admin" && user?.role === "admin" ? (
           <motion.div
             key="admin-tab"
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -15 }}
-            transition={{ duration: 0.2, ease: easeCustom }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: fastEase }}
           >
             <AdminDashboard token={token} />
           </motion.div>
         ) : (
           <motion.div
             key="todos-tab"
-            initial={{ opacity: 0, x: -15 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 15 }}
-            transition={{ duration: 0.2, ease: easeCustom }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: fastEase }}
           >
             <section className="stats-grid">
               <div className="stat-card">
@@ -663,7 +652,7 @@ function App() {
                   className="progress-fill"
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.3, ease: easeCustom }}
+                  transition={{ duration: 0.25, ease: fastEase }}
                 ></motion.div>
               </div>
             </section>
@@ -691,16 +680,7 @@ function App() {
                     className={`filter-btn ${isActive ? "active" : ""}`}
                     onClick={() => setFilter(type)}
                   >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeFilterGlow"
-                        className="filter-btn-active-bg"
-                        transition={{ duration: 0.2, ease: easeCustom }}
-                      />
-                    )}
-                    <span style={{ position: "relative", zIndex: 1 }}>
-                      {label} ({count})
-                    </span>
+                    {label} ({count})
                   </button>
                 );
               })}

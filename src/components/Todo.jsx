@@ -53,7 +53,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const easeCustom = [0.16, 1, 0.3, 1];
+const fastEase = [0.16, 1, 0.3, 1];
 
 function Todo({ todo, updateTodo, delTodo }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -73,20 +73,20 @@ function Todo({ todo, updateTodo, delTodo }) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 12, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-      transition={{ duration: 0.22, ease: easeCustom }}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      transition={{ duration: 0.15, ease: fastEase }}
       className={`todo ${todo.completed ? "is-completed" : ""}`}
     >
       <AnimatePresence mode="wait">
         {isEditing ? (
           <motion.div
             key="edit-mode"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
-            transition={{ duration: 0.15, ease: easeCustom }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1, ease: fastEase }}
             className="edit-box"
           >
             <input
@@ -97,14 +97,9 @@ function Todo({ todo, updateTodo, delTodo }) {
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
               autoFocus
             />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="save-btn"
-              onClick={handleSave}
-            >
+            <button className="save-btn" onClick={handleSave}>
               Save
-            </motion.button>
+            </button>
           </motion.div>
         ) : (
           <motion.div
@@ -112,7 +107,7 @@ function Todo({ todo, updateTodo, delTodo }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15, ease: easeCustom }}
+            transition={{ duration: 0.1, ease: fastEase }}
             className="todo-text-wrapper"
           >
             <p className={`todo-text ${todo.completed ? "completed" : ""}`}>
@@ -133,9 +128,7 @@ function Todo({ todo, updateTodo, delTodo }) {
         </label>
 
         {!isEditing && (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             className="edit-btn"
             onClick={() => {
               setEditText(todo.text);
@@ -143,17 +136,12 @@ function Todo({ todo, updateTodo, delTodo }) {
             }}
           >
             Edit
-          </motion.button>
+          </button>
         )}
 
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="delete-btn"
-          onClick={() => delTodo(todo.id)}
-        >
+        <button className="delete-btn" onClick={() => delTodo(todo.id)}>
           Delete
-        </motion.button>
+        </button>
       </div>
     </motion.div>
   );
