@@ -1,4 +1,361 @@
+// import { useState, useEffect } from "react";
+// import "./App.css";
+
+// import InputContainer from "./components/InputContainer";
+// import TodoContainer from "./components/TodoContainer";
+// import Login from "./components/Login";
+// import Register from "./components/Register";
+// import AdminDashboard from "./components/AdminDashboard";
+
+// const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
+
+// function App() {
+//   // =================================================
+//   // TODO STATES & FILTER
+//   // =================================================
+//   const [inputVal, setInputVal] = useState("");
+//   const [todos, setTodos] = useState([]);
+//   const [filter, setFilter] = useState("all");
+
+//   // =================================================
+//   // AUTH & NAVIGATION STATES
+//   // =================================================
+//   const [token, setToken] = useState(() => localStorage.getItem("token"));
+//   const [user, setUser] = useState(() => {
+//     const savedUser = localStorage.getItem("user");
+//     return savedUser ? JSON.parse(savedUser) : null;
+//   });
+//   const [showRegister, setShowRegister] = useState(false);
+//   const [activeTab, setActiveTab] = useState("todos"); // 'todos' | 'admin'
+
+//   // =================================================
+//   // HANDLE GOOGLE OAUTH REDIRECT & TOKEN DECODING
+//   // =================================================
+//   useEffect(() => {
+//     const urlParams = new URLSearchParams(window.location.search);
+//     const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
+
+//     const googleToken = urlParams.get("token") || hashParams.get("token");
+
+//     if (googleToken) {
+//       try {
+//         const payload = JSON.parse(
+//           atob(
+//             googleToken
+//               .split(".")[1]
+//               .replace(/-/g, "+")
+//               .replace(/_/g, "/")
+//           )
+//         );
+
+//         const googleUser = {
+//           id: payload.userId,
+//           name: payload.name,
+//           email: payload.email,
+//           role: payload.role || "user", // Extract role from token
+//         };
+
+//         localStorage.setItem("token", googleToken);
+//         localStorage.setItem("user", JSON.stringify(googleUser));
+
+//         setToken(googleToken);
+//         setUser(googleUser);
+
+//         window.history.replaceState(
+//           {},
+//           document.title,
+//           window.location.pathname
+//         );
+//       } catch (err) {
+//         console.error("Google token processing error:", err);
+//       }
+//     }
+//   }, []);
+
+//   // =================================================
+//   // NORMAL LOGIN HANDLER
+//   // =================================================
+//   function handleLogin(data) {
+//     localStorage.setItem("token", data.token);
+//     localStorage.setItem("user", JSON.stringify(data.user));
+//     setToken(data.token);
+//     setUser(data.user);
+//   }
+
+//   // =================================================
+//   // LOGOUT HANDLER
+//   // =================================================
+//   function logout() {
+//     localStorage.removeItem("token");
+//     localStorage.removeItem("user");
+//     setToken(null);
+//     setUser(null);
+//     setTodos([]);
+//     setActiveTab("todos");
+//   }
+
+//   // =================================================
+//   // FETCH TODOS
+//   // =================================================
+//   useEffect(() => {
+//     if (!token) return;
+
+//     fetch(API_URL, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//       },
+//     })
+//       .then((res) => {
+//         if (!res.ok) {
+//           throw new Error("Failed to load todos");
+//         }
+//         return res.json();
+//       })
+//       .then((data) => setTodos(data))
+//       .catch((err) => console.error("Error loading todos:", err));
+//   }, [token]);
+
+//   // =================================================
+//   // TODO CRUD ACTIONS
+//   // =================================================
+//   function writeTodo(e) {
+//     setInputVal(e.target.value);
+//   }
+
+//   async function addTodo() {
+//     if (!inputVal.trim()) return;
+
+//     try {
+//       const res = await fetch(API_URL, {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${token}`,
+//         },
+//         body: JSON.stringify({ text: inputVal }),
+//       });
+
+//       const newTodo = await res.json();
+
+//       if (!res.ok) {
+//         console.error(newTodo.error);
+//         return;
+//       }
+
+//       setTodos((prev) => [...prev, newTodo]);
+//       setInputVal("");
+//     } catch (err) {
+//       console.error("Error adding todo:", err);
+//     }
+//   }
+
+//   async function updateTodo(id, updatedFields) {
+//     try {
+//       const res = await fetch(`${API_URL}/${id}`, {
+//         method: "PUT",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Bearer ${token}`,
+//         },
+//         body: JSON.stringify(updatedFields),
+//       });
+
+//       const updatedTodo = await res.json();
+
+//       if (!res.ok) {
+//         console.error(updatedTodo.error);
+//         return;
+//       }
+
+//       setTodos((prev) =>
+//         prev.map((todo) => (todo.id === id ? updatedTodo : todo))
+//       );
+//     } catch (err) {
+//       console.error("Error updating todo:", err);
+//     }
+//   }
+
+//   async function delTodo(id) {
+//     try {
+//       const res = await fetch(`${API_URL}/${id}`, {
+//         method: "DELETE",
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       });
+
+//       const data = await res.json();
+
+//       if (!res.ok) {
+//         console.error(data.error);
+//         return;
+//       }
+
+//       setTodos((prev) => prev.filter((todo) => todo.id !== id));
+//     } catch (err) {
+//       console.error("Error deleting todo:", err);
+//     }
+//   }
+
+//   // =================================================
+//   // CALCULATED METRICS
+//   // =================================================
+//   const totalTasks = todos.length;
+//   const completedTasks = todos.filter((t) => t.completed).length;
+//   const pendingTasks = totalTasks - completedTasks;
+//   const progressPercent =
+//     totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+//   const filteredTodos = todos.filter((todo) => {
+//     if (filter === "active") return !todo.completed;
+//     if (filter === "completed") return todo.completed;
+//     return true;
+//   });
+
+//   // =================================================
+//   // AUTH VIEWS (LOGIN / REGISTER)
+//   // =================================================
+//   if (!token) {
+//     if (showRegister) {
+//       return <Register onShowLogin={() => setShowRegister(false)} />;
+//     }
+//     return (
+//       <Login
+//         onLogin={handleLogin}
+//         onShowRegister={() => setShowRegister(true)}
+//       />
+//     );
+//   }
+
+//   // =================================================
+//   // MAIN VIEW
+//   // =================================================
+//   return (
+//     <main className="app-card">
+//       {/* APP HEADER */}
+//       <header className="app-header">
+//         <div className="brand-logo">
+//           <div className="check-icon">✓</div>
+//           <h1 className="app-title">TaskMaster Pro</h1>
+//         </div>
+
+//         <div className="user-section">
+//           <div className="user-badge">
+//             <div className="user-avatar">
+//               {(user?.name || user?.email || "U")[0].toUpperCase()}
+//             </div>
+//             <div className="user-info">
+//               <span className="user-name">
+//                 {user?.name || "User"}{" "}
+//                 <strong className={`role-badge ${user?.role || "user"}`}>
+//                   [{user?.role || "user"}]
+//                 </strong>
+//               </span>
+//               <span className="user-email">
+//                 {user?.email || "user@gmail.com"}
+//               </span>
+//             </div>
+//           </div>
+
+//           {/* ADMIN TOGGLE BUTTON - ONLY VISIBLE TO ADMINS */}
+//           {user?.role === "admin" && (
+//             <button
+//               className="admin-toggle-btn"
+//               onClick={() =>
+//                 setActiveTab(activeTab === "todos" ? "admin" : "todos")
+//               }
+//             >
+//               {activeTab === "todos" ? "Admin Panel" : "My Tasks"}
+//             </button>
+//           )}
+
+//           <button className="logout-btn" onClick={logout}>
+//             Logout
+//           </button>
+//         </div>
+//       </header>
+
+//       {/* RENDER ADMIN DASHBOARD IF ACTIVE TAB IS ADMIN */}
+//       {activeTab === "admin" && user?.role === "admin" ? (
+//         <AdminDashboard token={token} />
+//       ) : (
+//         <>
+//           {/* DASHBOARD CARDS */}
+//           <section className="stats-grid">
+//             <div className="stat-card">
+//               <span className="stat-label">TOTAL TASKS</span>
+//               <span className="stat-value">{totalTasks}</span>
+//             </div>
+//             <div className="stat-card">
+//               <span className="stat-label">PENDING</span>
+//               <span className="stat-value warning">{pendingTasks}</span>
+//             </div>
+//             <div className="stat-card">
+//               <span className="stat-label">COMPLETED</span>
+//               <span className="stat-value success">{completedTasks}</span>
+//             </div>
+//           </section>
+
+//           {/* PROGRESS BAR */}
+//           <section className="progress-card">
+//             <div className="progress-header">
+//               <span className="stat-label">PROGRESS</span>
+//               <span className="progress-percentage">{progressPercent}%</span>
+//             </div>
+//             <div className="progress-track">
+//               <div
+//                 className="progress-fill"
+//                 style={{ width: `${progressPercent}%` }}
+//               ></div>
+//             </div>
+//           </section>
+
+//           {/* INPUT CONTAINER */}
+//           <InputContainer
+//             inputVal={inputVal}
+//             writeTodo={writeTodo}
+//             addTodo={addTodo}
+//           />
+
+//           {/* FILTER BUTTONS */}
+//           <div className="filter-buttons">
+//             <button
+//               className={`filter-btn ${filter === "all" ? "active" : ""}`}
+//               onClick={() => setFilter("all")}
+//             >
+//               All ({totalTasks})
+//             </button>
+//             <button
+//               className={`filter-btn ${filter === "active" ? "active" : ""}`}
+//               onClick={() => setFilter("active")}
+//             >
+//               Active ({pendingTasks})
+//             </button>
+//             <button
+//               className={`filter-btn ${
+//                 filter === "completed" ? "active" : ""
+//               }`}
+//               onClick={() => setFilter("completed")}
+//             >
+//               Completed ({completedTasks})
+//             </button>
+//           </div>
+
+//           {/* TODO LIST */}
+//           <TodoContainer
+//             todos={filteredTodos}
+//             updateTodo={updateTodo}
+//             delTodo={delTodo}
+//           />
+//         </>
+//       )}
+//     </main>
+//   );
+// }
+
+// export default App;
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import "./App.css";
 
 import InputContainer from "./components/InputContainer";
@@ -9,17 +366,13 @@ import AdminDashboard from "./components/AdminDashboard";
 
 const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
 
+const easeCustom = [0.16, 1, 0.3, 1];
+
 function App() {
-  // =================================================
-  // TODO STATES & FILTER
-  // =================================================
   const [inputVal, setInputVal] = useState("");
   const [todos, setTodos] = useState([]);
   const [filter, setFilter] = useState("all");
 
-  // =================================================
-  // AUTH & NAVIGATION STATES
-  // =================================================
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
@@ -28,13 +381,9 @@ function App() {
   const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState("todos"); // 'todos' | 'admin'
 
-  // =================================================
-  // HANDLE GOOGLE OAUTH REDIRECT & TOKEN DECODING
-  // =================================================
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
-
     const googleToken = urlParams.get("token") || hashParams.get("token");
 
     if (googleToken) {
@@ -52,7 +401,7 @@ function App() {
           id: payload.userId,
           name: payload.name,
           email: payload.email,
-          role: payload.role || "user", // Extract role from token
+          role: payload.role || "user",
         };
 
         localStorage.setItem("token", googleToken);
@@ -61,20 +410,13 @@ function App() {
         setToken(googleToken);
         setUser(googleUser);
 
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        );
+        window.history.replaceState({}, document.title, window.location.pathname);
       } catch (err) {
         console.error("Google token processing error:", err);
       }
     }
   }, []);
 
-  // =================================================
-  // NORMAL LOGIN HANDLER
-  // =================================================
   function handleLogin(data) {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
@@ -82,9 +424,6 @@ function App() {
     setUser(data.user);
   }
 
-  // =================================================
-  // LOGOUT HANDLER
-  // =================================================
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -94,9 +433,6 @@ function App() {
     setActiveTab("todos");
   }
 
-  // =================================================
-  // FETCH TODOS
-  // =================================================
   useEffect(() => {
     if (!token) return;
 
@@ -106,18 +442,13 @@ function App() {
       },
     })
       .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load todos");
-        }
+        if (!res.ok) throw new Error("Failed to load todos");
         return res.json();
       })
       .then((data) => setTodos(data))
       .catch((err) => console.error("Error loading todos:", err));
   }, [token]);
 
-  // =================================================
-  // TODO CRUD ACTIONS
-  // =================================================
   function writeTodo(e) {
     setInputVal(e.target.value);
   }
@@ -136,7 +467,6 @@ function App() {
       });
 
       const newTodo = await res.json();
-
       if (!res.ok) {
         console.error(newTodo.error);
         return;
@@ -197,9 +527,6 @@ function App() {
     }
   }
 
-  // =================================================
-  // CALCULATED METRICS
-  // =================================================
   const totalTasks = todos.length;
   const completedTasks = todos.filter((t) => t.completed).length;
   const pendingTasks = totalTasks - completedTasks;
@@ -212,30 +539,41 @@ function App() {
     return true;
   });
 
-  // =================================================
-  // AUTH VIEWS (LOGIN / REGISTER)
-  // =================================================
   if (!token) {
-    if (showRegister) {
-      return <Register onShowLogin={() => setShowRegister(false)} />;
-    }
     return (
-      <Login
-        onLogin={handleLogin}
-        onShowRegister={() => setShowRegister(true)}
-      />
+      <AnimatePresence mode="wait">
+        {showRegister ? (
+          <Register
+            key="register"
+            onShowLogin={() => setShowRegister(false)}
+          />
+        ) : (
+          <Login
+            key="login"
+            onLogin={handleLogin}
+            onShowRegister={() => setShowRegister(true)}
+          />
+        )}
+      </AnimatePresence>
     );
   }
 
-  // =================================================
-  // MAIN VIEW
-  // =================================================
   return (
-    <main className="app-card">
-      {/* APP HEADER */}
+    <motion.main
+      className="app-card"
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: easeCustom }}
+    >
       <header className="app-header">
         <div className="brand-logo">
-          <div className="check-icon">✓</div>
+          <motion.div
+            className="check-icon"
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            ✓
+          </motion.div>
           <h1 className="app-title">TaskMaster Pro</h1>
         </div>
 
@@ -247,9 +585,9 @@ function App() {
             <div className="user-info">
               <span className="user-name">
                 {user?.name || "User"}{" "}
-                <strong className={`role-badge ${user?.role || "user"}`}>
+                <span className={`role-badge ${user?.role || "user"}`}>
                   [{user?.role || "user"}]
-                </strong>
+                </span>
               </span>
               <span className="user-email">
                 {user?.email || "user@gmail.com"}
@@ -257,99 +595,126 @@ function App() {
             </div>
           </div>
 
-          {/* ADMIN TOGGLE BUTTON - ONLY VISIBLE TO ADMINS */}
           {user?.role === "admin" && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
               className="admin-toggle-btn"
               onClick={() =>
                 setActiveTab(activeTab === "todos" ? "admin" : "todos")
               }
             >
               {activeTab === "todos" ? "Admin Panel" : "My Tasks"}
-            </button>
+            </motion.button>
           )}
 
-          <button className="logout-btn" onClick={logout}>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.96 }}
+            className="logout-btn"
+            onClick={logout}
+          >
             Logout
-          </button>
+          </motion.button>
         </div>
       </header>
 
-      {/* RENDER ADMIN DASHBOARD IF ACTIVE TAB IS ADMIN */}
-      {activeTab === "admin" && user?.role === "admin" ? (
-        <AdminDashboard token={token} />
-      ) : (
-        <>
-          {/* DASHBOARD CARDS */}
-          <section className="stats-grid">
-            <div className="stat-card">
-              <span className="stat-label">TOTAL TASKS</span>
-              <span className="stat-value">{totalTasks}</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">PENDING</span>
-              <span className="stat-value warning">{pendingTasks}</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">COMPLETED</span>
-              <span className="stat-value success">{completedTasks}</span>
-            </div>
-          </section>
+      <AnimatePresence mode="wait">
+        {activeTab === "admin" && user?.role === "admin" ? (
+          <motion.div
+            key="admin-tab"
+            initial={{ opacity: 0, x: 15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -15 }}
+            transition={{ duration: 0.2, ease: easeCustom }}
+          >
+            <AdminDashboard token={token} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="todos-tab"
+            initial={{ opacity: 0, x: -15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 15 }}
+            transition={{ duration: 0.2, ease: easeCustom }}
+          >
+            <section className="stats-grid">
+              <div className="stat-card">
+                <span className="stat-label">TOTAL TASKS</span>
+                <span className="stat-value">{totalTasks}</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">PENDING</span>
+                <span className="stat-value warning">{pendingTasks}</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">COMPLETED</span>
+                <span className="stat-value success">{completedTasks}</span>
+              </div>
+            </section>
 
-          {/* PROGRESS BAR */}
-          <section className="progress-card">
-            <div className="progress-header">
-              <span className="stat-label">PROGRESS</span>
-              <span className="progress-percentage">{progressPercent}%</span>
+            <section className="progress-card">
+              <div className="progress-header">
+                <span className="stat-label">PROGRESS</span>
+                <span className="progress-percentage">{progressPercent}%</span>
+              </div>
+              <div className="progress-track">
+                <motion.div
+                  className="progress-fill"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.3, ease: easeCustom }}
+                ></motion.div>
+              </div>
+            </section>
+
+            <InputContainer
+              inputVal={inputVal}
+              writeTodo={writeTodo}
+              addTodo={addTodo}
+            />
+
+            <div className="filter-buttons">
+              {["all", "active", "completed"].map((type) => {
+                const isActive = filter === type;
+                const count =
+                  type === "all"
+                    ? totalTasks
+                    : type === "active"
+                    ? pendingTasks
+                    : completedTasks;
+                const label = type.charAt(0).toUpperCase() + type.slice(1);
+
+                return (
+                  <button
+                    key={type}
+                    className={`filter-btn ${isActive ? "active" : ""}`}
+                    onClick={() => setFilter(type)}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeFilterGlow"
+                        className="filter-btn-active-bg"
+                        transition={{ duration: 0.2, ease: easeCustom }}
+                      />
+                    )}
+                    <span style={{ position: "relative", zIndex: 1 }}>
+                      {label} ({count})
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="progress-track">
-              <div
-                className="progress-fill"
-                style={{ width: `${progressPercent}%` }}
-              ></div>
-            </div>
-          </section>
 
-          {/* INPUT CONTAINER */}
-          <InputContainer
-            inputVal={inputVal}
-            writeTodo={writeTodo}
-            addTodo={addTodo}
-          />
-
-          {/* FILTER BUTTONS */}
-          <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filter === "all" ? "active" : ""}`}
-              onClick={() => setFilter("all")}
-            >
-              All ({totalTasks})
-            </button>
-            <button
-              className={`filter-btn ${filter === "active" ? "active" : ""}`}
-              onClick={() => setFilter("active")}
-            >
-              Active ({pendingTasks})
-            </button>
-            <button
-              className={`filter-btn ${
-                filter === "completed" ? "active" : ""
-              }`}
-              onClick={() => setFilter("completed")}
-            >
-              Completed ({completedTasks})
-            </button>
-          </div>
-
-          {/* TODO LIST */}
-          <TodoContainer
-            todos={filteredTodos}
-            updateTodo={updateTodo}
-            delTodo={delTodo}
-          />
-        </>
-      )}
-    </main>
+            <TodoContainer
+              todos={filteredTodos}
+              updateTodo={updateTodo}
+              delTodo={delTodo}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.main>
   );
 }
 
