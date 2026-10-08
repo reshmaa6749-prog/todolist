@@ -53,9 +53,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const fastEase = [0.16, 1, 0.3, 1];
+const easeConfig = [0.16, 1, 0.3, 1];
 
-function Todo({ todo, updateTodo, delTodo }) {
+export default function Todo({ todo, updateTodo, delTodo }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
 
@@ -66,27 +66,23 @@ function Todo({ todo, updateTodo, delTodo }) {
     }
   }
 
-  function handleToggleComplete(e) {
-    updateTodo(todo.id, { completed: e.target.checked });
-  }
-
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.1 } }}
-      transition={{ duration: 0.15, ease: fastEase }}
+      transition={{ duration: 0.15, ease: easeConfig }}
       className={`todo ${todo.completed ? "is-completed" : ""}`}
     >
       <AnimatePresence mode="wait">
         {isEditing ? (
           <motion.div
-            key="edit-mode"
+            key="edit"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.1, ease: fastEase }}
+            transition={{ duration: 0.1, ease: easeConfig }}
             className="edit-box"
           >
             <input
@@ -103,11 +99,11 @@ function Todo({ todo, updateTodo, delTodo }) {
           </motion.div>
         ) : (
           <motion.div
-            key="view-mode"
+            key="text"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.1, ease: fastEase }}
+            transition={{ duration: 0.1, ease: easeConfig }}
             className="todo-text-wrapper"
           >
             <p className={`todo-text ${todo.completed ? "completed" : ""}`}>
@@ -122,9 +118,9 @@ function Todo({ todo, updateTodo, delTodo }) {
           <input
             type="checkbox"
             checked={todo.completed}
-            onChange={handleToggleComplete}
+            onChange={(e) => updateTodo(todo.id, { completed: e.target.checked })}
           />
-          <span className="checkmark"></span>
+          <span className="checkmark" />
         </label>
 
         {!isEditing && (
@@ -146,5 +142,3 @@ function Todo({ todo, updateTodo, delTodo }) {
     </motion.div>
   );
 }
-
-export default Todo;

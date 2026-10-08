@@ -357,345 +357,168 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import TodoContainer from "./components/TodoContainer";
+import InputContainer from "./components/InputContainer";
 import "./App.css";
 
-import InputContainer from "./components/InputContainer";
-import TodoContainer from "./components/TodoContainer";
-import Login from "./components/Login";
-import Register from "./components/Register";
-import AdminDashboard from "./components/AdminDashboard";
-
 const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
+const easeConfig = [0.16, 1, 0.3, 1];
 
-// Enterprise Fast Ease Standard
-const fastEase = [0.16, 1, 0.3, 1];
-
-function App() {
+export default function App() {
   const [inputVal, setInputVal] = useState("");
   const [todos, setTodos] = useState([]);
   const [filter, setFilter] = useState("all");
 
   const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : { name: "reshmaa", email: "reshmaa@gmail.com", role: "user" };
   });
-  const [showRegister, setShowRegister] = useState(false);
-  const [activeTab, setActiveTab] = useState("todos");
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
-    const googleToken = urlParams.get("token") || hashParams.get("token");
-
-    if (googleToken) {
-      try {
-        const payload = JSON.parse(
-          atob(
-            googleToken
-              .split(".")[1]
-              .replace(/-/g, "+")
-              .replace(/_/g, "/")
-          )
-        );
-
-        const googleUser = {
-          id: payload.userId,
-          name: payload.name,
-          email: payload.email,
-          role: payload.role || "user",
-        };
-
-        localStorage.setItem("token", googleToken);
-        localStorage.setItem("user", JSON.stringify(googleUser));
-
-        setToken(googleToken);
-        setUser(googleUser);
-
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (err) {
-        console.error("Google token processing error:", err);
-      }
-    }
-  }, []);
-
-  function handleLogin(data) {
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setToken(null);
-    setUser(null);
-    setTodos([]);
-    setActiveTab("todos");
-  }
 
   useEffect(() => {
     if (!token) return;
-
-    fetch(API_URL, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load todos");
-        return res.json();
-      })
-      .then((data) => setTodos(data))
-      .catch((err) => console.error("Error loading todos:", err));
+    fetch(API_URL, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.json())
+      .then((data) => Array.isArray(data) && setTodos(data))
+      .catch((err) => console.error(err));
   }, [token]);
 
-  function writeTodo(e) {
-    setInputVal(e.target.value);
-  }
-
-  async function addTodo() {
+  function handleAddTodo() {
     if (!inputVal.trim()) return;
-
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ text: inputVal }),
-      });
-
-      const newTodo = await res.json();
-      if (!res.ok) {
-        console.error(newTodo.error);
-        return;
-      }
-
-      setTodos((prev) => [...prev, newTodo]);
-      setInputVal("");
-    } catch (err) {
-      console.error("Error adding todo:", err);
-    }
+    const newTodo = { id: Date.now().toString(), text: inputVal, completed: false };
+    setTodos((prev) => [...prev, newTodo]);
+    setInputVal("");
   }
 
-  async function updateTodo(id, updatedFields) {
-    try {
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedFields),
-      });
-
-      const updatedTodo = await res.json();
-
-      if (!res.ok) {
-        console.error(updatedTodo.error);
-        return;
-      }
-
-      setTodos((prev) =>
-        prev.map((todo) => (todo.id === id ? updatedTodo : todo))
-      );
-    } catch (err) {
-      console.error("Error updating todo:", err);
-    }
+  function handleUpdateTodo(id, fields) {
+    setTodos((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...fields } : t))
+    );
   }
 
-  async function delTodo(id) {
-    try {
-      const res = await fetch(`${API_URL}/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.error(data.error);
-        return;
-      }
-
-      setTodos((prev) => prev.filter((todo) => todo.id !== id));
-    } catch (err) {
-      console.error("Error deleting todo:", err);
-    }
+  function handleDeleteTodo(id) {
+    setTodos((prev) => prev.filter((t) => t.id !== id));
   }
 
   const totalTasks = todos.length;
   const completedTasks = todos.filter((t) => t.completed).length;
   const pendingTasks = totalTasks - completedTasks;
-  const progressPercent =
-    totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+  const progressPercent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
-  const filteredTodos = todos.filter((todo) => {
-    if (filter === "active") return !todo.completed;
-    if (filter === "completed") return todo.completed;
+  const filteredTodos = todos.filter((t) => {
+    if (filter === "active") return !t.completed;
+    if (filter === "completed") return t.completed;
     return true;
   });
-
-  if (!token) {
-    return (
-      <AnimatePresence mode="wait">
-        {showRegister ? (
-          <Register
-            key="register"
-            onShowLogin={() => setShowRegister(false)}
-          />
-        ) : (
-          <Login
-            key="login"
-            onLogin={handleLogin}
-            onShowRegister={() => setShowRegister(true)}
-          />
-        )}
-      </AnimatePresence>
-    );
-  }
 
   return (
     <motion.main
       className="app-card"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: fastEase }}
+      transition={{ duration: 0.18, ease: easeConfig }}
     >
+      {/* Header */}
       <header className="app-header">
         <div className="brand-logo">
-          <div className="check-icon">✓</div>
+          <div className="brand-icon">✓</div>
           <h1 className="app-title">TaskMaster Pro</h1>
         </div>
 
         <div className="user-section">
           <div className="user-badge">
             <div className="user-avatar">
-              {(user?.name || user?.email || "U")[0].toUpperCase()}
+              {(user?.name || "U")[0].toUpperCase()}
             </div>
             <div className="user-info">
               <span className="user-name">
-                {user?.name || "User"}{" "}
-                <span className={`role-badge ${user?.role || "user"}`}>
-                  [{user?.role || "user"}]
-                </span>
+                {user?.name}{" "}
+                <span className={`role-tag ${user?.role}`}>[{user?.role}]</span>
               </span>
-              <span className="user-email">
-                {user?.email || "user@gmail.com"}
-              </span>
+              <span className="user-email">{user?.email}</span>
             </div>
           </div>
 
-          {user?.role === "admin" && (
-            <button
-              className="admin-toggle-btn"
-              onClick={() =>
-                setActiveTab(activeTab === "todos" ? "admin" : "todos")
-              }
-            >
-              {activeTab === "todos" ? "Admin" : "Tasks"}
-            </button>
-          )}
-
-          <button className="logout-btn" onClick={logout}>
+          <button className="logout-btn" onClick={() => localStorage.clear()}>
             Logout
           </button>
         </div>
       </header>
 
-      <AnimatePresence mode="wait">
-        {activeTab === "admin" && user?.role === "admin" ? (
+      {/* KPI Metrics */}
+      <section className="stats-grid">
+        <div className="stat-card">
+          <span className="stat-label">TOTAL TASKS</span>
+          <span className="stat-value">{totalTasks}</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">PENDING</span>
+          <span className="stat-value warning">{pendingTasks}</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-label">COMPLETED</span>
+          <span className="stat-value success">{completedTasks}</span>
+        </div>
+      </section>
+
+      {/* Progress Card */}
+      <section className="progress-card">
+        <div className="progress-header">
+          <span className="stat-label">PROGRESS</span>
+          <span className="progress-percentage">{progressPercent}%</span>
+        </div>
+        <div className="progress-track">
           <motion.div
-            key="admin-tab"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12, ease: fastEase }}
-          >
-            <AdminDashboard token={token} />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="todos-tab"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12, ease: fastEase }}
-          >
-            <section className="stats-grid">
-              <div className="stat-card">
-                <span className="stat-label">TOTAL TASKS</span>
-                <span className="stat-value">{totalTasks}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">PENDING</span>
-                <span className="stat-value warning">{pendingTasks}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-label">COMPLETED</span>
-                <span className="stat-value success">{completedTasks}</span>
-              </div>
-            </section>
+            className="progress-fill"
+            initial={{ width: 0 }}
+            animate={{ width: `${progressPercent}%` }}
+            transition={{ duration: 0.25, ease: easeConfig }}
+          />
+        </div>
+      </section>
 
-            <section className="progress-card">
-              <div className="progress-header">
-                <span className="stat-label">PROGRESS</span>
-                <span className="progress-percentage">{progressPercent}%</span>
-              </div>
-              <div className="progress-track">
-                <motion.div
-                  className="progress-fill"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.25, ease: fastEase }}
-                ></motion.div>
-              </div>
-            </section>
+      {/* Input */}
+      <div className="input-container">
+        <input
+          type="text"
+          placeholder="Enter task..."
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleAddTodo()}
+        />
+        <button className="add-btn" onClick={handleAddTodo}>
+          +
+        </button>
+      </div>
 
-            <InputContainer
-              inputVal={inputVal}
-              writeTodo={writeTodo}
-              addTodo={addTodo}
-            />
+      {/* Filters */}
+      <div className="filter-buttons">
+        {["all", "active", "completed"].map((type) => {
+          const count =
+            type === "all"
+              ? totalTasks
+              : type === "active"
+              ? pendingTasks
+              : completedTasks;
+          const label = type.charAt(0).toUpperCase() + type.slice(1);
+          return (
+            <button
+              key={type}
+              className={`filter-btn ${filter === type ? "active" : ""}`}
+              onClick={() => setFilter(type)}
+            >
+              {label} ({count})
+            </button>
+          );
+        })}
+      </div>
 
-            <div className="filter-buttons">
-              {["all", "active", "completed"].map((type) => {
-                const isActive = filter === type;
-                const count =
-                  type === "all"
-                    ? totalTasks
-                    : type === "active"
-                    ? pendingTasks
-                    : completedTasks;
-                const label = type.charAt(0).toUpperCase() + type.slice(1);
-
-                return (
-                  <button
-                    key={type}
-                    className={`filter-btn ${isActive ? "active" : ""}`}
-                    onClick={() => setFilter(type)}
-                  >
-                    {label} ({count})
-                  </button>
-                );
-              })}
-            </div>
-
-            <TodoContainer
-              todos={filteredTodos}
-              updateTodo={updateTodo}
-              delTodo={delTodo}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Task List */}
+      <TodoContainer
+        todos={filteredTodos}
+        updateTodo={handleUpdateTodo}
+        delTodo={handleDeleteTodo}
+      />
     </motion.main>
   );
 }
-
-export default App;
