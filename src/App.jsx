@@ -356,7 +356,7 @@
 // export default App;
 
 import { useState, useEffect } from "react";
-import Todo from "./Todo";
+import Todo from "./components/Todo";
 import "./App.css";
 
 const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
