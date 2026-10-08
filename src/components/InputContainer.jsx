@@ -33,15 +33,15 @@ function InputContainer({ inputVal, writeTodo, addTodo }) {
         value={inputVal}
         onChange={writeTodo}
         onKeyDown={handleKeyDown}
-        placeholder="Enter task..."
+        placeholder="What is the task today?"
       />
       <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.92 }}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.95 }}
         onClick={addTodo}
         className="add-btn"
       >
-        +
+        Add Task
       </motion.button>
     </div>
   );

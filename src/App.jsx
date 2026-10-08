@@ -355,7 +355,7 @@
 
 // export default App;
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import TodoItem from "./components/TodoItem";
 import "./App.css";
 
@@ -363,129 +363,141 @@ const API_URL = "https://todolist-r9lu.onrender.com/api/todos";
 
 export default function App() {
   const [inputVal, setInputVal] = useState("");
-  const [todos, setTodos] = useState([
-    { id: "1", text: "Complete the Lecture Notes", completed: false },
-    { id: "2", text: "Ready for the Mid-exam", completed: false },
-    { id: "3", text: "Complete the Journal", completed: false },
-    { id: "4", text: "Do the Mini-project", completed: false },
-    { id: "5", text: "Complete the Assignment", completed: false },
-  ]);
+  const [todos, setTodos] = useState([]);
+  const [filter, setFilter] = useState("all");
 
-  // Retaining authentication, token, and role states
   const [token] = useState(() => localStorage.getItem("token"));
-  const [userRole] = useState(() => localStorage.getItem("userRole") || "user");
+  const [user] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : { name: "reshmaa", email: "reshmaa@gmail.com" };
+  });
 
   useEffect(() => {
     if (!token) return;
-    fetch(API_URL, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
+    fetch(API_URL, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => res.json())
       .then((data) => Array.isArray(data) && setTodos(data))
-      .catch((err) => console.error("Error fetching tasks:", err));
+      .catch((err) => console.error(err));
   }, [token]);
 
   function addTodo() {
     if (!inputVal.trim()) return;
     const newTodo = { id: Date.now().toString(), text: inputVal, completed: false };
-
-    if (token) {
-      fetch(API_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newTodo),
-      })
-        .then((res) => res.json())
-        .then((savedTodo) => setTodos((prev) => [...prev, savedTodo]))
-        .catch(() => setTodos((prev) => [...prev, newTodo]));
-    } else {
-      setTodos((prev) => [...prev, newTodo]);
-    }
+    setTodos((prev) => [...prev, newTodo]);
     setInputVal("");
   }
 
   function updateTodo(id, updatedFields) {
-    if (token) {
-      fetch(`${API_URL}/${id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedFields),
-      }).catch((err) => console.error("Update error:", err));
-    }
     setTodos((prev) =>
       prev.map((todo) => (todo.id === id ? { ...todo, ...updatedFields } : todo))
     );
   }
 
   function deleteTodo(id) {
-    if (token) {
-      fetch(`${API_URL}/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch((err) => console.error("Delete error:", err));
-    }
     setTodos((prev) => prev.filter((todo) => todo.id !== id));
   }
 
+  const totalTasks = todos.length;
+  const completedTasks = todos.filter((t) => t.completed).length;
+  const activeTasks = totalTasks - completedTasks;
+
+  const filteredTodos = todos.filter((t) => {
+    if (filter === "active") return !t.completed;
+    if (filter === "completed") return t.completed;
+    return true;
+  });
+
   return (
-    <div className="layout-wrapper">
-      {/* Left Sidebar Illustration & Title */}
-      <div className="sidebar-section">
-        <div className="dot-pattern"></div>
-        <h1 className="main-title">ToDo App</h1>
-        <p className="main-subtitle">Let's Accomplish Tasks Together!</p>
+    <div className="app-layout">
+      {/* Left Section with Notebook Icon */}
+      <div className="hero-section">
+        <div className="dots-grid">
+          {[...Array(12)].map((_, i) => (
+            <span key={i} />
+          ))}
+        </div>
 
-        {/* Notebook Illustration */}
-        <div className="illustration-wrapper">
-          <svg className="notebook-illustration" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Spiral rings */}
-            <rect x="35" y="30" width="12" height="160" rx="6" fill="#e2e8f0" />
-            <circle cx="41" cy="45" r="4" fill="#cbd5e1" />
-            <circle cx="41" cy="70" r="4" fill="#cbd5e1" />
-            <circle cx="41" cy="95" r="4" fill="#cbd5e1" />
-            <circle cx="41" cy="120" r="4" fill="#cbd5e1" />
-            <circle cx="41" cy="145" r="4" fill="#cbd5e1" />
-            <circle cx="41" cy="170" r="4" fill="#cbd5e1" />
+        <h1 className="hero-title">ToDo App</h1>
+        <p className="hero-subtitle">Let's Accomplish Tasks Together!</p>
 
-            {/* Notebook Base */}
-            <rect x="45" y="20" width="125" height="180" rx="12" fill="#ffffff" stroke="#cbd5e1" strokeWidth="3" />
-            <rect x="45" y="20" width="16" height="180" fill="#f472b6" rx="4" />
+        {/* Notebook Graphic Vector replacing the owl */}
+        <div className="notebook-illustration">
+          <svg
+            className="notebook-svg"
+            viewBox="0 0 200 200"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Spiral Notebook Background */}
+            <rect x="40" y="30" width="130" height="150" rx="12" fill="#38BDF8" />
+            <rect x="50" y="30" width="120" height="150" rx="10" fill="#F472B6" />
+            <rect x="60" y="40" width="100" height="130" rx="6" fill="#FFFFFF" />
 
-            {/* Cover details */}
-            <rect x="75" y="50" width="75" height="8" rx="4" fill="#bae6fd" />
-            <rect x="75" y="70" width="85" height="6" rx="3" fill="#e2e8f0" />
-            <rect x="75" y="85" width="65" height="6" rx="3" fill="#e2e8f0" />
-            <rect x="75" y="100" width="80" height="6" rx="3" fill="#e2e8f0" />
-            <rect x="75" y="115" width="50" height="6" rx="3" fill="#e2e8f0" />
+            {/* Notebook Lines */}
+            <line x1="75" y1="70" x2="145" y2="70" stroke="#E2E8F0" strokeWidth="4" strokeLinecap="round" />
+            <line x1="75" y1="95" x2="145" y2="95" stroke="#E2E8F0" strokeWidth="4" strokeLinecap="round" />
+            <line x1="75" y1="120" x2="145" y2="120" stroke="#E2E8F0" strokeWidth="4" strokeLinecap="round" />
+            <line x1="75" y1="145" x2="125" y2="145" stroke="#E2E8F0" strokeWidth="4" strokeLinecap="round" />
 
-            {/* Bookmark / Pencil */}
-            <rect x="135" y="135" width="10" height="45" rx="3" fill="#38bdf8" transform="rotate(-15 135 135)" />
-            <polygon points="135,180 140,190 145,180" fill="#f43f5e" transform="rotate(-15 135 135)" />
+            {/* Checkmarks on page */}
+            <path d="M78 69 L82 73 L90 65" stroke="#38BDF8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M78 94 L82 98 L90 90" stroke="#F472B6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+            {/* Binder Rings */}
+            {[45, 65, 85, 105, 125, 145, 165].map((yVal, idx) => (
+              <g key={idx}>
+                <rect x="35" y={yVal - 4} width="20" height="8" rx="4" fill="#0F172A" />
+                <circle cx="52" cy={yVal} r="2.5" fill="#FFFFFF" />
+              </g>
+            ))}
+
+            {/* Decorative Pencil */}
+            <g transform="rotate(-25 140 120)">
+              <rect x="130" y="80" width="12" height="60" fill="#38BDF8" rx="2" />
+              <polygon points="130,140 142,140 136,152" fill="#F472B6" />
+              <rect x="130" y="75" width="12" height="8" fill="#CBD5E1" />
+            </g>
           </svg>
         </div>
 
         <div className="bottom-dots">
-          <span></span>
-          <span></span>
-          <span></span>
+          <span />
+          <span />
+          <span />
         </div>
       </div>
 
-      {/* Right Task Card Panel */}
-      <div className="task-panel">
-        <h2 className="panel-title">Get Things Done !</h2>
+      {/* Right ToDo Card Component */}
+      <div className="todo-card">
+        <header className="todo-header">
+          <h2 className="todo-title">Get Things Done !</h2>
+        </header>
 
-        {/* Input Bar */}
-        <div className="task-input-bar">
+        {user && (
+          <div className="user-badge">
+            <span>{user.name}</span>
+            <button className="logout-btn" onClick={() => localStorage.clear()}>
+              Logout
+            </button>
+          </div>
+        )}
+
+        <div className="stats-row">
+          <div className="stat-item">
+            <span className="stat-num">{totalTasks}</span>
+            <span className="stat-label">Total</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-num">{activeTasks}</span>
+            <span className="stat-label">Active</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-num">{completedTasks}</span>
+            <span className="stat-label">Done</span>
+          </div>
+        </div>
+
+        <div className="input-group">
           <input
             type="text"
             placeholder="What is the task today?"
@@ -493,20 +505,36 @@ export default function App() {
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addTodo()}
           />
-          <button onClick={addTodo}>Add Task</button>
+          <button className="add-btn" onClick={addTodo}>
+            Add Task
+          </button>
         </div>
 
-        {/* Todo List Items */}
-        <div className="task-list">
-          {todos.map((todo) => (
-            <TodoItem
-              key={todo.id}
-              todo={todo}
-              userRole={userRole}
-              updateTodo={updateTodo}
-              deleteTodo={deleteTodo}
-            />
+        <div className="filter-tabs">
+          {["all", "active", "completed"].map((type) => (
+            <button
+              key={type}
+              className={`filter-tab ${filter === type ? "active" : ""}`}
+              onClick={() => setFilter(type)}
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
           ))}
+        </div>
+
+        <div className="todo-list">
+          {filteredTodos.length === 0 ? (
+            <p className="empty-state">No tasks to display.</p>
+          ) : (
+            filteredTodos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                updateTodo={updateTodo}
+                deleteTodo={deleteTodo}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

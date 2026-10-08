@@ -436,16 +436,8 @@ const { google } = require("googleapis");
 const crypto = require("crypto");
 require("dotenv").config();
 
-// =====================================================
-// CREATE EXPRESS APP
-// =====================================================
-
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// =====================================================
-// MIDDLEWARE & CORS CONFIGURATION
-// =====================================================
 
 const allowedOrigins = [
   "https://infinityresh.infinityfreeapp.com",
@@ -473,15 +465,7 @@ app.use(
 
 app.use(express.json());
 
-// =====================================================
-// SILENCE FAVICON 404
-// =====================================================
-
 app.get("/favicon.ico", (req, res) => res.status(204).end());
-
-// =====================================================
-// ENVIRONMENT VARIABLES WITH PRODUCTION FALLBACKS
-// =====================================================
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -501,10 +485,6 @@ const FRONTEND_URL =
   process.env.FRONTEND_URL ||
   "https://infinityresh.infinityfreeapp.com";
 
-// =====================================================
-// CONNECT TO MONGODB
-// =====================================================
-
 mongoose
   .connect(MONGO_URI, { family: 4 })
   .then(() => {
@@ -514,19 +494,11 @@ mongoose
     console.error("MongoDB connection error:", err);
   });
 
-// =====================================================
-// GOOGLE OAUTH CLIENT
-// =====================================================
-
 const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
   GOOGLE_CALLBACK_URL
 );
-
-// =====================================================
-// SCHEMAS & MODELS (WITH RBAC ENHANCEMENTS)
-// =====================================================
 
 const userSchema = new mongoose.Schema(
   {
@@ -566,10 +538,6 @@ const todoSchema = new mongoose.Schema(
 
 const Todo = mongoose.model("Todo", todoSchema);
 
-// =====================================================
-// JWT HELPERS & RBAC MIDDLEWARE
-// =====================================================
-
 function createJWT(user) {
   return jwt.sign(
     {
@@ -607,7 +575,6 @@ function authenticateToken(req, res, next) {
   }
 }
 
-// Role-Based Authorization Middleware
 function requireRole(allowedRoles) {
   return (req, res, next) => {
     if (!req.userRole || !allowedRoles.includes(req.userRole)) {
@@ -618,10 +585,6 @@ function requireRole(allowedRoles) {
     next();
   };
 }
-
-// =====================================================
-// AUTH ROUTES
-// =====================================================
 
 app.post("/api/register", async (req, res) => {
   try {
@@ -790,10 +753,6 @@ app.get("/auth/google/callback", async (req, res) => {
   }
 });
 
-// =====================================================
-// TODO ROUTES (RBAC Protected)
-// =====================================================
-
 app.get("/api/todos", authenticateToken, requireRole(["user", "editor", "admin"]), async (req, res) => {
   try {
     const todos = await Todo.find({ userId: req.userId });
@@ -871,10 +830,6 @@ app.delete("/api/todos/:id", authenticateToken, requireRole(["user", "editor", "
   }
 });
 
-// =====================================================
-// ADMIN MANAGEMENT ROUTES (Admin Role Only)
-// =====================================================
-
 app.get("/api/admin/users", authenticateToken, requireRole(["admin"]), async (req, res) => {
   try {
     const users = await User.find({}, "-password");
@@ -911,14 +866,7 @@ app.put("/api/admin/users/:id/role", authenticateToken, requireRole(["admin"]), 
   }
 });
 
-// =====================================================
-// START SERVER
-// =====================================================
-
 const HOST = "0.0.0.0";
 app.listen(PORT, HOST, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-
-//mongodb+srv://todoappuser:todoapp@cluster0.as943ds.mongodb.net/?todoappuser
