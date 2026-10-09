@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 
-const easeCurve = [0.16, 1, 0.3, 1];
-
-export default function Todo({ todo, updateTodo, delTodo }) {
+export default function Todo({ todo, updateTodo, delTodo, isAdmin, currentUser }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
 
@@ -25,117 +22,77 @@ export default function Todo({ todo, updateTodo, delTodo }) {
     if (e.key === "Escape") handleCancel();
   }
 
-  function toggleComplete(e) {
+  function handleToggleComplete(e) {
     updateTodo(todo.id || todo._id, { completed: e.target.checked });
   }
 
-  const priority = todo.priority || "medium";
+  // Determine owner label if viewing as admin
+  const isMine =
+    todo.userEmail === currentUser?.email ||
+    todo.userId === currentUser?.id ||
+    todo.userId === currentUser?._id ||
+    (!todo.userEmail && !todo.userId);
+
+  const ownerLabel = isMine
+    ? "My Task"
+    : todo.userName || todo.userEmail || "Other User";
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.16, ease: easeCurve }}
-      className={`todo-item-card ${todo.completed ? "is-completed" : ""}`}
-    >
-      <div className="todo-left-content">
-        <label className="custom-checkbox-label">
+    <div className="todo">
+      {isEditing ? (
+        <div className="edit-box">
           <input
-            type="checkbox"
-            className="custom-checkbox-input"
-            checked={!!todo.completed}
-            onChange={toggleComplete}
+            type="text"
+            className="edit-input"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
           />
-          <span className="checkbox-visual">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"
-              />
-            </svg>
-          </span>
-        </label>
-
-        {isEditing ? (
-          <div className="todo-inline-edit">
-            <input
-              type="text"
-              className="edit-input-field"
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-            />
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              type="button"
-              className="edit-save-btn"
-              onClick={handleSave}
-            >
-              Save
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              type="button"
-              className="edit-cancel-btn"
-              onClick={handleCancel}
-            >
-              Cancel
-            </motion.button>
-          </div>
-        ) : (
-          <div className="todo-content-block">
-            <div className="todo-text-row">
-              <span className={`todo-text ${todo.completed ? "completed" : ""}`}>
-                {todo.text}
-              </span>
-              <span className={`priority-tag ${priority}`}>
-                {priority}
-              </span>
-            </div>
-            {todo.createdAt && (
-              <span className="todo-meta-date">
-                {new Date(todo.createdAt).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })}
+          <button type="button" className="save-btn" onClick={handleSave}>
+            Save
+          </button>
+          <button type="button" className="cancel-btn" onClick={handleCancel}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="todo-text-group">
+            <p className={todo.completed ? "completed" : ""}>{todo.text}</p>
+            {isAdmin && (
+              <span className={`task-owner-badge ${isMine ? "mine" : "other"}`}>
+                {ownerLabel}
               </span>
             )}
           </div>
-        )}
-      </div>
 
-      {!isEditing && (
-        <div className="todo-actions-cluster">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            type="button"
-            className="action-icon-btn edit"
-            onClick={() => setIsEditing(true)}
-            title="Edit task"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
-          </motion.button>
-
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            type="button"
-            className="action-icon-btn delete"
-            onClick={() => delTodo(todo.id || todo._id)}
-            title="Delete task"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
-          </motion.button>
-        </div>
+          <div className="actions">
+            <input
+              type="checkbox"
+              checked={!!todo.completed}
+              onChange={handleToggleComplete}
+            />
+            <button
+              type="button"
+              className="edit-btn"
+              onClick={() => {
+                setEditText(todo.text);
+                setIsEditing(true);
+              }}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="delete-btn"
+              onClick={() => delTodo(todo.id || todo._id)}
+            >
+              Delete
+            </button>
+          </div>
+        </>
       )}
-    </motion.div>
+    </div>
   );
 }

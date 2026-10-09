@@ -755,7 +755,14 @@ app.get("/auth/google/callback", async (req, res) => {
 
 app.get("/api/todos", authenticateToken, requireRole(["user", "editor", "admin"]), async (req, res) => {
   try {
-    const todos = await Todo.find({ userId: req.userId });
+    let todos;
+    if (req.userRole === "admin") {
+      // Admin can access their own tasks and others' tasks
+      todos = await Todo.find().populate("userId", "name email role").sort({ createdAt: -1 });
+    } else {
+      // Standard user can only access their own tasks
+      todos = await Todo.find({ userId: req.userId }).sort({ createdAt: -1 });
+    }
     res.json(todos);
   } catch (err) {
     console.error("Error getting todos:", err);
@@ -772,7 +779,8 @@ app.post("/api/todos", authenticateToken, requireRole(["user", "editor", "admin"
     }
 
     const newTodo = new Todo({ text: text.trim(), userId: req.userId });
-    const savedTodo = await newTodo.save();
+    let savedTodo = await newTodo.save();
+    savedTodo = await savedTodo.populate("userId", "name email role");
     res.status(201).json(savedTodo);
   } catch (err) {
     console.error("Error creating todo:", err);
@@ -797,11 +805,13 @@ app.put("/api/todos/:id", authenticateToken, requireRole(["user", "editor", "adm
       updatedData.completed = completed;
     }
 
+    // Admin can update any task; standard user can only update their own
+    const query = req.userRole === "admin" ? { _id: id } : { _id: id, userId: req.userId };
     const updatedTodo = await Todo.findOneAndUpdate(
-      { _id: id, userId: req.userId },
+      query,
       updatedData,
       { new: true }
-    );
+    ).populate("userId", "name email role");
 
     if (!updatedTodo) {
       return res.status(404).json({ error: "Todo not found" });
@@ -817,7 +827,9 @@ app.put("/api/todos/:id", authenticateToken, requireRole(["user", "editor", "adm
 app.delete("/api/todos/:id", authenticateToken, requireRole(["user", "editor", "admin"]), async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedTodo = await Todo.findOneAndDelete({ _id: id, userId: req.userId });
+    // Admin can delete any task; standard user can only delete their own
+    const query = req.userRole === "admin" ? { _id: id } : { _id: id, userId: req.userId };
+    const deletedTodo = await Todo.findOneAndDelete(query);
 
     if (!deletedTodo) {
       return res.status(404).json({ error: "Todo not found" });
