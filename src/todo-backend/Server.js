@@ -521,6 +521,7 @@ const todoSchema = new mongoose.Schema(
   {
     text: { type: String, required: true, trim: true },
     completed: { type: Boolean, default: false },
+    isPublic: { type: Boolean, default: false },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
   {
@@ -757,11 +758,13 @@ app.get("/api/todos", authenticateToken, requireRole(["user", "editor", "admin"]
   try {
     let todos;
     if (req.userRole === "admin") {
-      // Admin can access their own tasks and others' tasks
+      // Admin can access their own tasks and others' tasks (both private and public)
       todos = await Todo.find().populate("userId", "name email role").sort({ createdAt: -1 });
     } else {
-      // Standard user can only access their own tasks
-      todos = await Todo.find({ userId: req.userId }).sort({ createdAt: -1 });
+      // Standard user can access their own tasks (private or public) AND any public tasks from others
+      todos = await Todo.find({
+        $or: [{ userId: req.userId }, { isPublic: true }]
+      }).populate("userId", "name email role").sort({ createdAt: -1 });
     }
     res.json(todos);
   } catch (err) {
@@ -772,13 +775,17 @@ app.get("/api/todos", authenticateToken, requireRole(["user", "editor", "admin"]
 
 app.post("/api/todos", authenticateToken, requireRole(["user", "editor", "admin"]), async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, isPublic } = req.body;
 
     if (!text || !text.trim()) {
       return res.status(400).json({ error: "Todo text cannot be empty" });
     }
 
-    const newTodo = new Todo({ text: text.trim(), userId: req.userId });
+    const newTodo = new Todo({
+      text: text.trim(),
+      isPublic: Boolean(isPublic),
+      userId: req.userId,
+    });
     let savedTodo = await newTodo.save();
     savedTodo = await savedTodo.populate("userId", "name email role");
     res.status(201).json(savedTodo);
@@ -791,7 +798,7 @@ app.post("/api/todos", authenticateToken, requireRole(["user", "editor", "admin"
 app.put("/api/todos/:id", authenticateToken, requireRole(["user", "editor", "admin"]), async (req, res) => {
   try {
     const { id } = req.params;
-    const { text, completed } = req.body;
+    const { text, completed, isPublic } = req.body;
     const updatedData = {};
 
     if (text !== undefined) {
@@ -803,6 +810,10 @@ app.put("/api/todos/:id", authenticateToken, requireRole(["user", "editor", "adm
 
     if (completed !== undefined) {
       updatedData.completed = completed;
+    }
+
+    if (isPublic !== undefined) {
+      updatedData.isPublic = Boolean(isPublic);
     }
 
     // Admin can update any task; standard user can only update their own

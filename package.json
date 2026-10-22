@@ -17,6 +17,7 @@
     "framer-motion": "^14.0.0",
     "googleapis": "^178.0.0",
     "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.57.0",
     "mongoose": "^9.9.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
