@@ -553,7 +553,7 @@ export default function App() {
                   ? "Public Tasks"
                   : currentView === "all"
                   ? "All Accessible Tasks"
-                  : "To Do List"}
+                  : "Task Manager"}
               </span>
 
               {/* Private / Public Switcher Pill */}
@@ -699,7 +699,7 @@ export default function App() {
                       ? "Public Tasks"
                       : currentView === "all"
                       ? "All Tasks"
-                      : "To Do List"}
+                      : "Task Manager"}
                   </h1>
 
                   <div className="notion-scope-description-banner">

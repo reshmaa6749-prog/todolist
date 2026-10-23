@@ -187,7 +187,7 @@ export default function Sidebar({
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </span>
-              <span className="nav-text">To Do List</span>
+              <span className="nav-text">Task Manager</span>
               <span className="nav-count">{privateCount}</span>
             </button>
 
